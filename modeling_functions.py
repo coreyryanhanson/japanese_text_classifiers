@@ -1,3 +1,7 @@
+from imblearn.over_sampling import SMOTE
+
+from random_lumberjacks.src.random_lumberjacks.model.model_classes import *
+
 def color_values_to_float(array, bits):
     """Converts arrays with integer color data to floats depending on their bit depth. Currently only supports
     8bit, 10 bit, and 12 bit images."""
@@ -25,4 +29,20 @@ def images_to_1d(data, w=None, h=None, channels=None, inverse=False):
         args = [n_obs, -1]
 
     return data.reshape(args)
+
+
+def preprocess_raster_resampling(X, y, resample, random_state=None):
+    if resample == "upsample":
+        print("performing upsample")
+        X, y = simple_resample_array(X, y, random_state=random_state)
+    elif resample == "downsample":
+        print("performing downsample")
+        X, y = simple_resample_array(X, y, down=True, random_state=random_state)
+    elif resample == "smote":
+        print("performing SMOTE")
+        sm = SMOTE(sampling_strategy='not majority', random_state=random_state, n_jobs=-1)
+        X, y = sm.fit_sample(X, y)
+    else:
+        print("Ignoring class imbalances")
+    return X, y
 

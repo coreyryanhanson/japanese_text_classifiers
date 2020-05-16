@@ -2,11 +2,15 @@ import numpy as np
 import pandas as pd
 import seaborn as sns
 import matplotlib.pyplot as plt
+import matplotlib.font_manager as fm
 
 
-def common_plot_setup(figure=None, axes=None, palette=None, figsize=(15, 10), style=None):
+
+def common_plot_setup(figure=None, axes=None, palette=None, font=None, figsize=(15, 10), style=None):
     if style:
         plt.style.use(style)
+    if font:
+        plt.rcParams['font.family'] = font
     if palette:
         sns.set_palette(palette)
     if figure and axes:
