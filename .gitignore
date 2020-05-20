@@ -1,0 +1,8 @@
+model_backups
+presentation
+xxARCHIVE
+.ipynb_checkpoints
+__pycache__
+data/kuzushiji49/test
+data/kuzushiji49/train
+data/kuzushiji49/k49_classmap.csv
