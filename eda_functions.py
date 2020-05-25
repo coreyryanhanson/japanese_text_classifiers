@@ -82,7 +82,7 @@ def bulk_character_viewer(data, labels, indices=(1), predictions=None, columns=3
         else:
             label = f"<p>Actual: {labels[i]}</p>"
             prediction = f"<p>Predicted: {predictions[i]}</p>"
-            line = f"<span>{img} {label} {prediction}<br></span>"
+            line = f"<span>{img}<p>{predictions.index[i]}</p> {label} {prediction}<br></span>"
         code_lines.append(line)
 
     # Puts the list of lines into a block of HTML
