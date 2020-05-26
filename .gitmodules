@@ -4,3 +4,6 @@
 [submodule "random_lumberjacks"]
 	path = random_lumberjacks
 	url = https://github.com/coreyryanhanson/random_lumberjacks.git
+[submodule "choubenkyo_kivy_app"]
+	path = choubenkyo_kivy_app
+	url = https://github.com/coreyryanhanson/choubenkyo_kivy_app.git

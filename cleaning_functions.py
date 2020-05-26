@@ -84,6 +84,7 @@ def image_path_list_train_test_split(path_list, ratio_train, ratio_test=None):
         test = path_list[test_idx:]
         return train, val, test
 
+
 def parse_emnist(path, offset=16, isimg=True):
     with gzip.open(path) as f:
         # First 16 bytes are magic_number, n_imgs, n_rows, n_cols
@@ -113,3 +114,38 @@ def preprocess_raster_resampling(X, y, resample, random_state=None):
     else:
         print("Ignoring class imbalances")
     return X, y
+
+
+
+def line_from_array(draw, points, fill=255, width=2):
+    """Takes a PIL image draw object draws and converts points from a numpy array to render a curved line to those pixels"""
+
+    coords = points.reshape(-1).tolist()
+    joint = "curve"
+    return draw.line(coords, fill, width, joint)
+
+
+def parse_to_points_list(points_dict):
+    """Converts a dictionary of recorded points and vertically reflects them to match PIL's coordinate system."""
+
+    return [[1, -1] * value for key, value in sorted(points_dict.items())]
+
+
+def scale_points_for_pixels(points_list, size=(28, 28), buffer=0):
+    """Takes a list of points and normalizes them to pixel size. Optional parameter for buffer around the edges to prevent unintentional cropping (should match stroke width)."""
+
+    all_points = np.vstack(points_list).T
+    x_min, x_max = all_points[0].min(), all_points[0].max()
+    y_min, y_max = all_points[1].min(), all_points[1].max()
+    x_span, y_span = x_max - x_min, y_max - y_min
+    x_cent, y_cent = (x_min + x_max) / 2, (y_min + y_max) / 2
+    if x_span > y_span:
+        y_min, y_max = y_cent - x_span / 2, y_cent + x_span / 2
+    else:
+        x_min, x_max = x_cent - y_span / 2, x_cent + y_span / 2
+    new_points = []
+    for points in points_list:
+        scaled_x = np.interp(points.T[0], (x_min, x_max), (0 + buffer, size[0] - buffer))
+        scaled_y = np.interp(points.T[1], (y_min, y_max), (0 + buffer, size[1] - buffer))
+        new_points.append(np.stack((scaled_x, scaled_y)).T)
+    return new_points

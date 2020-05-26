@@ -1,5 +1,6 @@
 import matplotlib.font_manager as fm
 from IPython.core.display import HTML
+import pickle
 
 
 def display_matplotlib_fonts(columns=3):
@@ -21,3 +22,11 @@ def extend_matplotlib_fonts(font_directory):
     font_files = fm.findSystemFonts(fontpaths=font_dirs)
     font_list = fm.createFontList(font_files)
     fm.fontManager.ttflist.extend(font_list)
+
+def load_pickle(path):
+    with open(path, "rb") as f:
+        return pickle.load(f)
+
+def save_pickle(data, path):
+    with open(path, "wb") as f:
+        pickle.dump(data, f)
