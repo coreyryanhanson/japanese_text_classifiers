@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.metrics import balanced_accuracy_score, balanced_accuracy_score
+from sklearn.metrics import accuracy_score, balanced_accuracy_score
 
 
 def determine_trainable_layers(model):
