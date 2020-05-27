@@ -5,6 +5,9 @@ import numpy as np
 from imblearn.over_sampling import SMOTE
 from tensorflow.keras.preprocessing.image import array_to_img
 
+from geomdl import BSpline
+from geomdl.utilities import generate_knot_vector
+
 from random_lumberjacks.src.random_lumberjacks.model.model_classes import *
 
 def color_values_to_float(array, bits):
@@ -121,14 +124,24 @@ def line_from_array(draw, points, fill=255, width=2):
     """Takes a PIL image draw object draws and converts points from a numpy array to render a curved line to those pixels"""
 
     coords = points.reshape(-1).tolist()
-    joint = "curve"
-    return draw.line(coords, fill, width, joint)
+    return draw.line(coords, fill, width)
 
 
-def parse_to_points_list(points_dict):
-    """Converts a dictionary of recorded points and vertically reflects them to match PIL's coordinate system."""
+def parse_to_points_list(points_dict, sample_size=120, degree=3):
+    """Converts a dictionary of recorded points to a standard length and vertically reflects them to match PIL's coordinate system."""
 
-    return [[1, -1] * value for key, value in sorted(points_dict.items())]
+    return [resample_coords_smooth([1, -1] * value, sample_size, degree) for key, value in sorted(points_dict.items())]
+
+
+def resample_coords_smooth(coords, sample_size=120, degree=3):
+    """Resamples an array of coordinates while smoothing out the new values with a b-spline."""
+
+    curve = BSpline.Curve()
+    curve.degree = degree
+    curve.ctrlpts = coords.tolist()
+    curve.knotvector = generate_knot_vector(degree, len(curve.ctrlpts))
+    curve.sample_size = sample_size
+    return np.array(curve.evalpts)
 
 
 def scale_points_for_pixels(points_list, size=(28, 28), buffer=0):
@@ -149,3 +162,28 @@ def scale_points_for_pixels(points_list, size=(28, 28), buffer=0):
         scaled_y = np.interp(points.T[1], (y_min, y_max), (0 + buffer, size[1] - buffer))
         new_points.append(np.stack((scaled_x, scaled_y)).T)
     return new_points
+
+
+def strokes_to_array(data, max_features=80):
+    """Stacks the stroke data across dimensions. It keeps consistency among the different characters by filling in zeros
+    when there is insufficient strokes. The amount of alloted features is defined by the parameter "max fetures" which
+    can be calculated by taking the total amount of desired strokes divided by 2 (x and y)"""
+
+    sample_size = data[0].shape[0]
+    feature_count = len(data) * 2
+
+    #Groups X and Y values for different features within the same dimension.
+    new_array = np.dstack(data).reshape([sample_size, -1])
+
+    #App provides possible values range from -1 to 1. This will standardize the data for machine learning, while also preserving information present in the relative size of a drawing.
+    scaled_array = (new_array + 1)/2
+
+    #Prevents code from breaking if an observation has more strokes than anticipated.
+    if feature_count > max_features:
+        print(f"{feature_count} features exceed maximum of {max_features}. Trimming array")
+        scaled_array = scaled_array[:, :max_features]
+        feature_count = max_features
+
+    #Pads the array with zeros where there are less features than the maximum.
+    padded =  np.pad(scaled_array, [(0, 0), (0, max_features - feature_count)], mode='constant', constant_values=0)
+    return padded.reshape([1, sample_size, max_features])
