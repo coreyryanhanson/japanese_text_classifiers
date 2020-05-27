@@ -175,15 +175,12 @@ def strokes_to_array(data, max_features=80):
     #Groups X and Y values for different features within the same dimension.
     new_array = np.dstack(data).reshape([sample_size, -1])
 
-    #App provides possible values range from -1 to 1. This will standardize the data for machine learning, while also preserving information present in the relative size of a drawing.
-    scaled_array = (new_array + 1)/2
-
     #Prevents code from breaking if an observation has more strokes than anticipated.
     if feature_count > max_features:
         print(f"{feature_count} features exceed maximum of {max_features}. Trimming array")
-        scaled_array = scaled_array[:, :max_features]
+        new_array = new_array[:, :max_features]
         feature_count = max_features
 
     #Pads the array with zeros where there are less features than the maximum.
-    padded =  np.pad(scaled_array, [(0, 0), (0, max_features - feature_count)], mode='constant', constant_values=0)
+    padded =  np.pad(new_array, [(0, 0), (0, max_features - feature_count)], mode='constant', constant_values=0)
     return padded.reshape([1, sample_size, max_features])
