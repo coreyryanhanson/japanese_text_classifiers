@@ -18,6 +18,11 @@ Leverage what existing datasets are available that could be applied for immediat
 * Hundreds of thousands of classified classical Japanese glyphs from the [Kuzushiji-49 dataset](https://github.com/rois-codh/kmnist/tree/12d650ef8a97d4e051d7650644912f9500067df6).
 * Independent capture of digital writing leveraged from a simple [mobile phone app](https://github.com/coreyryanhanson/choubenkyo_kivy_app). ****yet to be implemented**
 
+## The Notebooks
+# [General training with the Kuzushiji Hiragana Dataset](kuzushiji_notebook.ipynb)
+# [Building a base for transfer learning](kanji_transfer.ipynb)
+# [Applying the models to original data](modeling_with_new_data.ipynb)
+
 ## The Roadmap:
 ### A general loose order of things to come:
 **Stage 1** - Build an OCR recognition baseline using existing data from the Kuzushiji-49. The observations have a degree of separation from the goal of this project, but it also provides an advantages in terms of baseline/future generalizations in that it's classification is a more difficult task since the historical kuzushiji script is less standardized.<br>**Started-5/13/2020**
@@ -41,20 +46,22 @@ The models were compared against a baseline predictor that made predictions in a
 * Balanced Accuracy: 0.0208
 
 ## Model Performance
+Updating in progress. See notebooks for up to date information.
 All of the models vastly outperformed the baseline predictor:
 * Simple 2 hidden layer dense network:
- * Accuracy: 0.761
- * Balanced Accuracy: 0.761
+    * Accuracy: 0.761
+    * Balanced Accuracy: 0.761
 * Simple 3 hidden layer CNN:
- * Accuracy: 0.938
- * Balanced Accuracy: 0.929
+    * Accuracy: 0.938
+    * Balanced Accuracy: 0.929
 * [VGG16 trained on imageNet](https://www.tensorflow.org/api_docs/python/tf/keras/applications/VGG16) transfer learning model:
- * Accuracy: 0.959
- * Balanced Accuracy: 0.956
+    * Accuracy: 0.959
+    * Balanced Accuracy: 0.956
 
 However while these numbers are high for complicated dataset, there were some shortcomings when taking a closer look at the predictions that are better explained in the project notebook.
 
 ## Next Steps:
+Updating in progress. See notebooks for up to date information.
 The current best performing model appears to be in the position to benefit from reduction in complexity. The ideal optimizations would both reduce processing time and give a slight improvement to accuracy.
 
 Without finding another OCR model, supplementing the kuzushiji-49 with their kanji dataset has potential enhance the earlier CNN weights through generalization, but it should be noted that the images that make up those observations are roughly double the resolution of the hiragana set. At this point, it also makes sense to drop the 3 obsoleted kana at least in the short term since they don't add much to the aforementioned use case.
