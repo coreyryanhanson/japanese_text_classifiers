@@ -17,6 +17,13 @@ def color_values_to_float(array, bits):
     bit_dict = {8:255, 10:1023, 12:4095}
     return array/bit_dict[bits]
 
+def create_classification_dirs(path_list, labels):
+    """Creates multiple subdirectories for each directory in a list of paths."""
+
+    for path in path_list:
+        for label in labels:
+            os.makedirs(os.path.join(path, label))
+
 def export_numpy_array_to_images(data, labels, parent_path, prefix=""):
     for label in np.unique(labels):
         new_dir = f"{prefix}{label}"
@@ -117,7 +124,6 @@ def preprocess_raster_resampling(X, y, resample, random_state=None):
     else:
         print("Ignoring class imbalances")
     return X, y
-
 
 
 def line_from_array(draw, points, fill=255, width=2):
