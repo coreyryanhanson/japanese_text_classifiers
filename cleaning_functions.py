@@ -136,6 +136,10 @@ def parse_to_points_list(points_dict, sample_size=120, degree=3):
 def resample_coords_smooth(coords, sample_size=120, degree=3):
     """Resamples an array of coordinates while smoothing out the new values with a b-spline."""
 
+    #Prevents code from breaking when the stroke contains too few values.
+    while coords.shape[0] < degree + 1:
+        coords = np.concatenate((coords, np.expand_dims(coords[-1], axis=0)), axis=0)
+
     curve = BSpline.Curve()
     curve.degree = degree
     curve.ctrlpts = coords.tolist()
