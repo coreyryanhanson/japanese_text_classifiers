@@ -34,6 +34,27 @@ def export_numpy_array_to_images(data, labels, parent_path, prefix=""):
             img = array_to_img(observation)
             img.save(os.path.join(new_path, f"{i:04}.png"))
 
+def fill_np_array_nan_neighbors(array, needs_transpose=False):
+    """Fills a numpy array with nan values with interpolations from neighboring points."""
+
+    # Creates a mask of na values in array.
+    mask = np.isnan(array)
+
+    # If nans are detected, it fills any missing values first with interpolation between existing points.
+    if np.any(mask):
+
+        # Transposes the arrays for interpolation if needed.
+        if needs_transpose:
+            array = array.T
+            mask = mask.T
+
+        array[mask] = np.interp(np.flatnonzero(mask), np.flatnonzero(~mask), array[~mask])
+
+        # Reverses the transpose if needed.
+        if needs_transpose:
+            array = array.T
+    return array
+
 def images_to_1d(data, w=None, h=None, channels=None, inverse=False):
     """Function that will turn conform pixel data to their vector representation in order to be used in Neural Networks.
     Can be done in reverse, but then requires values for the width/height and number of color channels if they exist."""
@@ -93,6 +114,22 @@ def image_path_list_train_test_split(path_list, ratio_train, ratio_test=None):
         val = path_list[train_idx:test_idx]
         test = path_list[test_idx:]
         return train, val, test
+
+
+def lstm_angle_components(stroke_list):
+    """Iterates through a list of numpy arrays for each stroke calculating the sine and cosine of the angle between each point."""
+
+    stroke_list = stroke_list.copy()
+    angle_components = []
+    for stroke in stroke_list:
+        distance = np.diff(stroke, axis=0)
+        hypot = np.hypot(distance[:, 0], distance[:, 1])
+
+        # Calculates the sin and cosine of the angle. Replaces nans with interpolations from neighboring points if zero division error.
+        angle_group = fill_np_array_nan_neighbors((distance.T / hypot).T, True)
+        angle_group = np.concatenate((angle_group, np.expand_dims(angle_group[-1], axis=0)), axis=0)
+        angle_components.append(angle_group)
+    return angle_components
 
 
 def parse_emnist(path, offset=16, isimg=True):
@@ -174,23 +211,31 @@ def scale_points_for_pixels(points_list, size=(28, 28), buffer=0):
     return new_points
 
 
-def strokes_to_array(data, max_features=80):
+def strokes_to_array(data, max_strokes=40):
     """Stacks the stroke data across dimensions. It keeps consistency among the different characters by filling in zeros
     when there is insufficient strokes. The amount of alloted features is defined by the parameter "max fetures" which
-    can be calculated by taking the total amount of desired strokes divided by 2 (x and y)"""
+    can be calculated by taking the total amount of desired strokes multiplied by 4 (x, y, cosΘ, and sinΘ,)"""
 
     sample_size = data[0].shape[0]
-    feature_count = len(data) * 2
+    stroke_count = len(data)
+    max_features = max_strokes * 4
 
-    #Groups X and Y values for different features within the same dimension.
-    new_array = np.dstack(data).reshape([sample_size, -1])
+    angle_components = lstm_angle_components(data)
 
-    #Prevents code from breaking if an observation has more strokes than anticipated.
-    if feature_count > max_features:
-        print(f"{feature_count} features exceed maximum of {max_features}. Trimming array")
-        new_array = new_array[:, :max_features]
-        feature_count = max_features
+    # Groups X and Y values for different features within the same dimension.
+    stacked_data = np.dstack(data)
+    stacked_angles = np.dstack(angle_components)
 
-    #Pads the array with zeros where there are less features than the maximum.
-    padded =  np.pad(new_array, [(0, 0), (0, max_features - feature_count)], mode='constant', constant_values=0)
-    return padded.reshape([1, sample_size, max_features])
+    new_array = np.concatenate([stacked_data, stacked_angles], axis=1)
+
+    # Prevents code from breaking if an observation has more strokes than anticipated.
+    if stroke_count > max_strokes:
+        print(f"{stroke_count} strokes exceed maximum of {max_strokes}. Trimming array")
+        new_array = new_array[:, :, :max_strokes]
+        stroke_count = max_strokes
+
+    # Pads the array with zeros where there are less strokes than the maximum.
+    padded = np.pad(new_array, [(0, 0), (0, 0), (0, max_strokes - stroke_count)], mode='constant', constant_values=0)
+    flattened = padded.reshape([sample_size, -1])
+
+    return flattened.reshape([1, sample_size, max_features])
