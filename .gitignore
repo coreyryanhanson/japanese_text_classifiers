@@ -6,4 +6,5 @@ __pycache__
 data/kuzushiji49/test
 data/kuzushiji49/train
 data/kuzushiji49/k49_classmap.csv
+functions/__pycache__
 initial_findings/.ipynb_checkpoints

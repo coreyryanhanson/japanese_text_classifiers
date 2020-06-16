@@ -23,7 +23,7 @@ Leverage what existing datasets are available that could be applied for immediat
 ## The Notebooks
 * [General training with the Kuzushiji Hiragana Dataset](initial_findings/kuzushiji_notebook.ipynb)
 * [Building a base for transfer learning](initial_findings/kanji_transfer.ipynb)
-* [Applying the models to original data](initial_findings/modeling_with_new_data.ipynb)
+* [Applying the models to original data](initial_findings/modeling_with_new_data.md)
 
 ## The Roadmap:
 ### A general loose order of things to come:
