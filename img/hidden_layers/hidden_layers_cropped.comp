@@ -1,0 +1,525 @@
+Composition {
+	CurrentTime = 300,
+	RenderRange = { 0, 300 },
+	GlobalRange = { 0, 300 },
+	CurrentID = 23,
+	HiQ = true,
+	PlaybackUpdateMode = 0,
+	Version = "Fusion Studio 16.2.1 build 6",
+	SavedOutputs = 1,
+	HeldTools = 0,
+	DisabledTools = 0,
+	LockedTools = 0,
+	AudioOffset = 0,
+	Resumable = true,
+	OutputClips = {
+		"/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/hidden_layers/cnn4hiddenlayers.mov",
+		"/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/hidden_layers/cnn2hiddenlayers.mov"
+	},
+	Tools = {
+		Loader1 = Loader {
+			Clips = {
+				Clip {
+					ID = "Clip1",
+					Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/hidden_layers/cnn2hiddenlayers_cr.png",
+					FormatID = "PNGFormat",
+					StartFrame = -1,
+					LengthSetManually = true,
+					TrimIn = 0,
+					TrimOut = 0,
+					ExtendFirst = 0,
+					ExtendLast = 0,
+					Loop = 0,
+					AspectMode = 0,
+					Depth = 0,
+					TimeCode = 0,
+					GlobalStart = 0,
+					GlobalEnd = 0
+				}
+			},
+			Inputs = {
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				["Clip1.PNGFormat.PostMultiply"] = Input { Value = 1, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 219.333, 101.242 } },
+		},
+		Loader2 = Loader {
+			Clips = {
+				Clip {
+					ID = "Clip1",
+					Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/hidden_layers/cnn4hiddenlayers.png",
+					FormatID = "PNGFormat",
+					StartFrame = -1,
+					LengthSetManually = true,
+					TrimIn = 0,
+					TrimOut = 0,
+					ExtendFirst = 0,
+					ExtendLast = 0,
+					Loop = 0,
+					AspectMode = 0,
+					Depth = 0,
+					TimeCode = 0,
+					GlobalStart = 0,
+					GlobalEnd = 0
+				}
+			},
+			Inputs = {
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				["Clip1.PNGFormat.PostMultiply"] = Input { Value = 1, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 41.5597, -14.7045 } },
+		},
+		Background1 = Background {
+			Inputs = {
+				GlobalOut = Input { Value = 300, },
+				Width = Input { Value = 754, },
+				Height = Input { Value = 664, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				Type = Input { Value = FuID { "Gradient" }, },
+				Gradient = Input {
+					Value = Gradient {
+						Colors = {
+							[0] = { 0.925490200519562, 0.925490200519562, 0.933333337306976, 1 },
+							[1] = { 0.662745118141174, 0.658823549747467, 0.694117665290833, 1 }
+						}
+					},
+				},
+			},
+			ViewInfo = OperatorInfo { Pos = { 223.333, 55.5151 } },
+		},
+		Crop2 = Crop {
+			Inputs = {
+				YOffset = Input { Value = 491, },
+				XSize = Input { Value = 754, },
+				YSize = Input { Value = 1489, },
+				Input = Input {
+					SourceOp = "Loader2",
+					Source = "Output",
+				},
+			},
+			ViewInfo = OperatorInfo { Pos = { 183.924, -10.056 } },
+		},
+		Transform1 = Transform {
+			Inputs = {
+				Center = Input {
+					SourceOp = "Path1",
+					Source = "Position",
+				},
+				Edges = Input { Value = 1, },
+				Input = Input {
+					SourceOp = "Crop2",
+					Source = "Output",
+				},
+			},
+			ViewInfo = OperatorInfo { Pos = { 346.33, 1.30303 } },
+		},
+		Path1 = PolyPath {
+			DrawMode = "InsertAndModify",
+			CtrlWZoom = false,
+			Inputs = {
+				Displacement = Input {
+					SourceOp = "Path1Displacement",
+					Source = "Value",
+				},
+				PolyLine = Input {
+					Value = Polyline {
+						Points = {
+							{ Linear = true, LockY = true, X = 0, Y = -0.554, RX = 0, RY = 0.333333333333333 },
+							{ Linear = true, LockY = true, X = 0, Y = 0.446, LX = 0, LY = -0.333333333333333 }
+						}
+					},
+				},
+			},
+		},
+		Path1Displacement = BezierSpline {
+			SplineColor = { Red = 255, Green = 0, Blue = 255 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0, RH = { 100, 0.333333333333333 }, Flags = { Linear = true, LockedY = true } },
+				[300] = { 1, LH = { 200, 0.666666666666667 }, Flags = { Linear = true, LockedY = true } }
+			}
+		},
+		Crop1 = Crop {
+			Inputs = {
+				XSize = Input { Value = 754, },
+				YSize = Input { Value = 664, },
+				Input = Input {
+					SourceOp = "Transform1",
+					Source = "Output",
+				},
+			},
+			ViewInfo = OperatorInfo { Pos = { 473.319, -5.06373 } },
+		},
+		Merge1 = Merge {
+			Inputs = {
+				Background = Input {
+					SourceOp = "Background1",
+					Source = "Output",
+				},
+				Foreground = Input {
+					SourceOp = "Crop1",
+					Source = "Output",
+				},
+				PerformDepthMerge = Input { Value = 0, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 441.657, 63.9937 } },
+		},
+		Resize1 = BetterResize {
+			Inputs = {
+				Width = Input { Value = 502, },
+				Height = Input { Value = 443, },
+				HiQOnly = Input { Value = 0, },
+				PixelAspect = Input { Value = { 1, 1 }, },
+				Input = Input {
+					SourceOp = "Merge1",
+					Source = "Output",
+				},
+			},
+			ViewInfo = OperatorInfo { Pos = { 573.581, 66.0455 } },
+		},
+		Saver1_1 = Saver {
+			CtrlWZoom = false,
+			Inputs = {
+				ProcessWhenBlendIs00 = Input { Value = 0, },
+				Clip = Input {
+					Value = Clip {
+						Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/hidden_layers/cnn4hiddenlayers.mov",
+						FormatID = "QuickTimeMovies",
+						Length = 0,
+						Multiframe = true,
+						Saving = true,
+						TrimIn = 0,
+						ExtendFirst = 0,
+						ExtendLast = 0,
+						Loop = 1,
+						AspectMode = 0,
+						Depth = 0,
+						GlobalStart = -2000000000,
+						GlobalEnd = 0
+					},
+				},
+				OutputFormat = Input { Value = FuID { "QuickTimeMovies" }, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				VideoType = Input { Value = FuID { "NTSC" }, },
+				Input = Input {
+					SourceOp = "Resize1",
+					Source = "Output",
+				},
+				["QuickTimeMovies.Compression"] = Input { Value = FuID { "Apple ProRes 422_apcn" }, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 699.148, 82.3529 } },
+		},
+		Saver1 = Saver {
+			Inputs = {
+				ProcessWhenBlendIs00 = Input { Value = 0, },
+				Clip = Input {
+					Value = Clip {
+						Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/hidden_layers/cnn2hiddenlayers.mov",
+						FormatID = "QuickTimeMovies",
+						Length = 0,
+						Multiframe = true,
+						Saving = true,
+						TrimIn = 0,
+						ExtendFirst = 0,
+						ExtendLast = 0,
+						Loop = 1,
+						AspectMode = 0,
+						Depth = 0,
+						TimeCode = 0,
+						GlobalStart = -2000000000,
+						GlobalEnd = 0
+					},
+				},
+				OutputFormat = Input { Value = FuID { "QuickTimeMovies" }, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				VideoType = Input { Value = FuID { "NTSC" }, },
+				["QuickTimeMovies.Compression"] = Input { Value = FuID { "Apple ProRes 422_apcn" }, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 708.269, 25.1955 } },
+		}
+	},
+	Frames = {
+		{
+			FrameTypeID = "ChildFrame",
+			Mode = 3,
+			LayoutPreset = 0,
+			Left = 0,
+			Top = 27,
+			Width = 1920,
+			Height = 910,
+			ZoneInfo = {
+				["!Right"] = {
+				},
+				["!Left"] = {
+				},
+				AuxLeft = { Expanded = true },
+				Right = { Expanded = true, },
+				Left = { Expanded = false, },
+				AuxRight = { Expanded = true }
+			},
+			ViewInfo = {
+				Viewer1 = { Show = true, RatioY = 1, RatioX = 0.5, },
+				InnerLeft = {
+				},
+				MainSplit = {
+					RatioX = 1,
+					RatioY = 0.405063291139241,
+				},
+				CenterSplit = {
+					RatioX = 0.780907668231612,
+					RatioY = 1,
+				},
+				Viewer2 = { Show = true, RatioY = 1, RatioX = 0.5, },
+				Comments = { Show = false },
+				Time = { Show = true, PixelY = 83, RatioX = 1, },
+				InnerColumns = {
+					RatioX = 1,
+					RatioY = 0.537399309551208,
+				},
+				Keyframes = { Show = true, Adjust = false, RatioY = 1, MRU = 1, RatioX = 0.5, },
+				LayoutStrip = { Show = true, RatioX = 1, },
+				Inspector = { Show = true, RatioY = 1, RatioX = 1, },
+				ActionStrip = { Show = true, RatioX = 1, },
+				InnerRight = {
+				},
+				OuterColumns = {
+					RatioX = 1,
+					RatioY = 0.960308710033076,
+				},
+				Effects = { Show = false, },
+				Clips = { Show = false, },
+				Metadata = { Show = false, },
+				OuterLeft = {
+				},
+				ViewerSplit = {
+					RatioX = 1,
+					RatioY = 0.840384615384615,
+				},
+				Nodes = { Show = true, RatioY = 1, RatioX = 0.5, },
+				OuterRight = {
+					RatioY = 1,
+					PixelX = 420,
+				},
+				MediaPool = { Show = false, },
+				Spline = { Show = false, }
+			},
+			Views = ordered() {
+				Effects = MultiView {
+					Active = "EffectView",
+					ViewList = ordered() {
+						EffectView = "EffectView"
+					},
+				},
+				Nodes = MultiView {
+					Active = "FlowView",
+					ViewList = ordered() {
+						FlowView = "FlowView"
+					},
+					Names = {
+						FlowView = "FlowView"
+					},
+					FlowView = FlowView {
+						Flags = {
+							Navigator = true,
+							AutoHideNavigator = true,
+							AutoSnap = true,
+							RemoveRouters = true
+						},
+						NavigatorSize = { 200, 140 },
+						Direction = "Horizontal",
+						PipeStyle = "Direct",
+						RootScale = 0.668964,
+						RootOffset = { -203.855, 101.559 }
+					}
+				},
+				Keyframes = MultiView {
+					Active = "TimelineView",
+					ViewList = ordered() {
+						TimelineView = "TimelineView"
+					},
+					Names = {
+						TimelineView = "TimelineView"
+					},
+					TimelineView = TimelineView {
+						TreeControlState = {
+							{ "Transform1", Expanded = true }
+						},
+						DisplayMode = "All Tools",
+						ShowCurrentTimeTools = false,
+						Filter = "Show All",
+						ShowSelectedTools = false,
+						ShowAnimatedToolsOnly = false,
+						ShowEditBoxes = false,
+						KeyFrameView = {
+							Position = { Left = 232, Bottom = 290 },
+							ScaleX = 1.52765658186078,
+							OffsetX = -83.3151033828376,
+							OffsetY = 0,
+							AutoScaling = "scroll",
+							AutoSnapTo = "frame",
+							AutoSnapToGuidelines = false,
+							GuidelinesGrabEnabled = true,
+							GuidelinesSnapTo = "frame"
+						},
+						Spreadsheet = { LeftPos = 232, Visible = false }
+					}
+				},
+				Spline = MultiView {
+					Active = "SplineView",
+					ViewList = ordered() {
+						SplineView = "SplineEditorView"
+					},
+					Names = {
+						SplineView = "SplineView"
+					},
+					SplineView = SplineEditorView {
+						LeftPos = 264,
+						ScaleX = 0.2,
+						ScaleY = 0.00338983050847458,
+						OffsetX = 239.2,
+						OffsetY = 0,
+						AutoScaling = "scroll",
+						AutoSnapTo = "frame",
+						AutoSnapToGuidelines = false,
+						GuidelinesSnapTo = "frame",
+						ShowKeyMarkers = false,
+						IndependentHandles = false,
+						ShowNonSplineModifiers = false,
+						GuidelinesGrabEnabled = true,
+						ShowOneToolOnly = false,
+						ShowSelectedTools = false,
+						ShowAllInputs = false,
+						Filter = "Show All"
+					}
+				},
+				Inspector = MultiView {
+					Active = "Tools",
+					ViewList = ordered() {
+						Tools = "ControlView",
+						Modifiers = "ModifierView"
+					},
+				},
+				Viewer1 = MultiView {
+					Active = "LeftView",
+					ViewList = ordered() {
+						LeftView = "PreviewContainer"
+					},
+					Names = {
+						LeftView = "LeftView"
+					},
+				},
+				Viewer2 = MultiView {
+					Active = "RightView",
+					ViewList = ordered() {
+						RightView = "PreviewContainer"
+					},
+					Names = {
+						RightView = "RightView"
+					},
+				},
+				Time = "TimeView",
+				ActionStrip = "ActionStripView",
+				LayoutStrip = "LayoutStripView"
+			},
+			Layout = {
+				Rows = 2,
+				RatioX = 1,
+				RatioY = 1,
+				{ ID = "LayoutStrip", RatioX = 1, FixedY = 36, Flat = true },
+				{
+					Columns = 2,
+					RatioY = 0.960308710033076,
+					{
+						Rows = 3,
+						RatioX = 0.780907668231612,
+						RatioY = 1,
+						{
+							Rows = 2,
+							RatioX = 1,
+							RatioY = 1,
+							{
+								Columns = 2,
+								RatioX = 1,
+								RatioY = 0.840384615384615,
+								{ ID = "Viewer1", RatioX = 0.5, RatioY = 1 },
+								{ ID = "Viewer2", RatioX = 0.5 }
+							},
+							{ ID = "Time", FixedY = 83, Flat = true }
+						},
+						{ ID = "ActionStrip", FixedY = 50, Flat = true },
+						{
+							Columns = 2,
+							RatioY = 0.405063291139241,
+							{ ID = "Nodes", RatioX = 0.5, RatioY = 1 },
+							{ ID = "Keyframes", RatioX = 0.5 }
+						}
+					},
+					{ ID = "Inspector", RatioX = 1, RatioY = 1 }
+				}
+			}
+		}
+	},
+	Prefs = {
+		Comp = {
+			Views = {
+				View1 = {
+				},
+				LeftView = {
+					PickW = 1,
+					PickH = 1,
+				},
+				RightView = {
+					PickW = 1,
+					PickH = 1,
+				}
+			},
+			FrameFormat = {
+				GuideRatio = 1.77777777777778,
+			},
+			LastFile = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.mov",
+			Unsorted = {
+				GlobalEnd = 300,
+				RenderSettings = {
+					Configs = {
+						Preview = {
+							StepRender = false,
+							PriorityClasses = "all",
+							CustomAspect = true,
+							StepSize = 5,
+							SizeType = 1,
+							CustomHeight = 160,
+							ShowSlaves = false,
+							CustomWidth = 200,
+							MotionBlur = true,
+							UpdateMode = "Some",
+							UseNetwork = false,
+							Quality = true
+						},
+						Final = {
+							StepRender = false,
+							PriorityClasses = "all",
+							CustomAspect = true,
+							StepSize = 5,
+							SizeType = 1,
+							CustomHeight = 160,
+							ShowSlaves = false,
+							CustomWidth = 200,
+							MotionBlur = true,
+							UpdateMode = "Some",
+							UseNetwork = false,
+							Quality = true
+						}
+					},
+					PreviewConfig = "Preview",
+					CurrentConfig = "Final"
+				}
+			},
+			Paths = {
+			},
+			QuickTime = {
+			},
+		}
+	},
+}
+
+ 

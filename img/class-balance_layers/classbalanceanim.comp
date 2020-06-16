@@ -1,0 +1,609 @@
+Composition {
+	CurrentTime = 30,
+	RenderRange = { 0, 30 },
+	GlobalRange = { 0, 30 },
+	CurrentID = 36,
+	HiQ = true,
+	PlaybackUpdateMode = 0,
+	Version = "Fusion Studio 16.2.1 build 6",
+	SavedOutputs = 0,
+	HeldTools = 0,
+	DisabledTools = 0,
+	LockedTools = 0,
+	AudioOffset = 0,
+	Resumable = true,
+	OutputClips = {
+		"/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.mov"
+	},
+	Tools = {
+		Loader1 = Loader {
+			Clips = {
+				Clip {
+					ID = "Clip1",
+					Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.psd",
+					FormatID = "PSDFormat",
+					StartFrame = -1,
+					LengthSetManually = true,
+					TrimIn = 0,
+					TrimOut = 0,
+					ExtendFirst = 0,
+					ExtendLast = 0,
+					Loop = 0,
+					AspectMode = 0,
+					Depth = 0,
+					TimeCode = 0,
+					GlobalStart = 0,
+					GlobalEnd = 0
+				}
+			},
+			Inputs = {
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				["Clip1.PSDFormat.Layer"] = Input { Value = 1, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 291.302, 49.5647 } },
+		},
+		Loader1_1_1 = Loader {
+			Clips = {
+				Clip {
+					ID = "Clip1",
+					Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.psd",
+					FormatID = "PSDFormat",
+					StartFrame = -1,
+					LengthSetManually = true,
+					TrimIn = 0,
+					TrimOut = 0,
+					ExtendFirst = 0,
+					ExtendLast = 0,
+					Loop = 0,
+					AspectMode = 0,
+					Depth = 0,
+					TimeCode = 0,
+					GlobalStart = 0,
+					GlobalEnd = 0
+				}
+			},
+			Inputs = {
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				["Clip1.PSDFormat.Layer"] = Input { Value = 4, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 30.1132, 177.595 } },
+		},
+		Loader1_1 = Loader {
+			Clips = {
+				Clip {
+					ID = "Clip1",
+					Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.psd",
+					FormatID = "PSDFormat",
+					StartFrame = -1,
+					LengthSetManually = true,
+					TrimIn = 0,
+					TrimOut = 0,
+					ExtendFirst = 0,
+					ExtendLast = 0,
+					Loop = 0,
+					AspectMode = 0,
+					Depth = 0,
+					TimeCode = 0,
+					GlobalStart = 0,
+					GlobalEnd = 0
+				}
+			},
+			Inputs = {
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				["Clip1.PSDFormat.Layer"] = Input { Value = 3, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 169.959, 124.829 } },
+		},
+		Loader1_1_1_1 = Loader {
+			Clips = {
+				Clip {
+					ID = "Clip1",
+					Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.psd",
+					FormatID = "PSDFormat",
+					StartFrame = -1,
+					LengthSetManually = true,
+					TrimIn = 0,
+					TrimOut = 0,
+					ExtendFirst = 0,
+					ExtendLast = 0,
+					Loop = 0,
+					AspectMode = 0,
+					Depth = 0,
+					TimeCode = 0,
+					GlobalStart = 0,
+					GlobalEnd = 0
+				}
+			},
+			Inputs = {
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				["Clip1.PSDFormat.Layer"] = Input { Value = 2, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 445.185, 270.637 } },
+		},
+		Merge1_1 = Merge {
+			Inputs = {
+				Background = Input {
+					SourceOp = "Loader1_1_1",
+					Source = "Output",
+				},
+				Foreground = Input {
+					SourceOp = "Loader1_1",
+					Source = "Output",
+				},
+				PerformDepthMerge = Input { Value = 0, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 179.817, 170.912 } },
+		},
+		Background1 = Background {
+			CtrlWZoom = false,
+			Inputs = {
+				GlobalOut = Input { Value = 30, },
+				Width = Input { Value = 1008, },
+				Height = Input { Value = 633, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				TopLeftRed = Input {
+					SourceOp = "Background1TopLeftRed",
+					Source = "Value",
+				},
+				TopLeftGreen = Input {
+					SourceOp = "Background1TopLeftGreen",
+					Source = "Value",
+				},
+				TopLeftBlue = Input {
+					SourceOp = "Background1TopLeftBlue",
+					Source = "Value",
+				},
+				TopLeftAlpha = Input {
+					SourceOp = "Background1TopLeftAlpha",
+					Source = "Value",
+				},
+				EffectMask = Input {
+					SourceOp = "Merge1_1",
+					Source = "Output",
+				}
+			},
+			ViewInfo = OperatorInfo { Pos = { 313.597, 161.349 } },
+		},
+		Background1TopLeftRed = BezierSpline {
+			SplineColor = { Red = 255, Green = 0, Blue = 0 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0.886274516582489, RH = { 5, 0.886274516582489 }, Flags = { Linear = true } },
+				[15] = { 0.584313750267029, LH = { 10, 0.584313750267029 }, RH = { 20, 0.584313750267029 } },
+				[30] = { 0.886274516582489, LH = { 25, 0.886274516582489 } }
+			}
+		},
+		Background1TopLeftGreen = BezierSpline {
+			SplineColor = { Red = 0, Green = 255, Blue = 0 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0.556862771511078, RH = { 5, 0.556862771511078 }, Flags = { Linear = true } },
+				[15] = { 0.125490203499794, LH = { 10, 0.125490203499794 }, RH = { 20, 0.125490203499794 } },
+				[30] = { 0.556862771511078, LH = { 25, 0.556862771511078 } }
+			}
+		},
+		Background1TopLeftBlue = BezierSpline {
+			SplineColor = { Red = 0, Green = 0, Blue = 255 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0.39215686917305, RH = { 5, 0.39215686917305 }, Flags = { Linear = true } },
+				[15] = { 0.290196090936661, LH = { 10, 0.290196090936661 }, RH = { 20, 0.290196090936661 } },
+				[30] = { 0.39215686917305, LH = { 25, 0.39215686917305 } }
+			}
+		},
+		Background1TopLeftAlpha = BezierSpline {
+			SplineColor = { Red = 180, Green = 180, Blue = 180 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 1, RH = { 5, 1 }, Flags = { Linear = true } },
+				[15] = { 1, LH = { 10, 1 }, RH = { 20, 1 } },
+				[30] = { 1, LH = { 25, 1 } }
+			}
+		},
+		Background1_1 = Background {
+			Inputs = {
+				GlobalOut = Input { Value = 30, },
+				Width = Input { Value = 1008, },
+				Height = Input { Value = 633, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				TopLeftRed = Input {
+					SourceOp = "Background1_1TopLeftRed",
+					Source = "Value",
+				},
+				TopLeftGreen = Input {
+					SourceOp = "Background1_1TopLeftGreen",
+					Source = "Value",
+				},
+				TopLeftBlue = Input {
+					SourceOp = "Background1_1TopLeftBlue",
+					Source = "Value",
+				},
+				TopLeftAlpha = Input {
+					SourceOp = "Background1_1TopLeftAlpha",
+					Source = "Value",
+				},
+				EffectMask = Input {
+					SourceOp = "Loader1_1_1_1",
+					Source = "Output",
+				}
+			},
+			ViewInfo = OperatorInfo { Pos = { 443.56, 221.9 } },
+		},
+		Background1_1TopLeftRed = BezierSpline {
+			SplineColor = { Red = 255, Green = 0, Blue = 0 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0.929411768913269, RH = { 5, 0.929411768913269 }, Flags = { Linear = true } },
+				[15] = { 0.878431379795074, LH = { 10, 0.878431379795074 }, RH = { 20, 0.878431379795074 } },
+				[30] = { 0.929411768913269, LH = { 25, 0.929411768913269 } }
+			}
+		},
+		Background1_1TopLeftGreen = BezierSpline {
+			SplineColor = { Red = 0, Green = 255, Blue = 0 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0.945098042488098, RH = { 5, 0.945098042488098 }, Flags = { Linear = true } },
+				[15] = { 0.513725519180298, LH = { 10, 0.513725519180298 }, RH = { 20, 0.513725519180298 } },
+				[30] = { 0.945098042488098, LH = { 25, 0.945098042488098 } }
+			}
+		},
+		Background1_1TopLeftBlue = BezierSpline {
+			SplineColor = { Red = 0, Green = 0, Blue = 255 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 0.721568644046783, RH = { 5, 0.721568644046783 }, Flags = { Linear = true } },
+				[15] = { 0.368627458810806, LH = { 10, 0.368627458810806 }, RH = { 20, 0.368627458810806 } },
+				[30] = { 0.721568644046783, LH = { 25, 0.721568644046783 } }
+			}
+		},
+		Background1_1TopLeftAlpha = BezierSpline {
+			SplineColor = { Red = 180, Green = 180, Blue = 180 },
+			NameSet = true,
+			KeyFrames = {
+				[0] = { 1, RH = { 5, 1 }, Flags = { Linear = true } },
+				[15] = { 1, LH = { 10, 1 }, RH = { 23.3333333333333, 1 } },
+				[40] = { 1, LH = { 31.6666666666667, 1 } }
+			}
+		},
+		Merge1_1_1 = Merge {
+			Inputs = {
+				Background = Input {
+					SourceOp = "Background1",
+					Source = "Output",
+				},
+				Foreground = Input {
+					SourceOp = "Background1_1",
+					Source = "Output",
+				},
+				PerformDepthMerge = Input { Value = 0, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 440.311, 165.78 } },
+		},
+		Merge1 = Merge {
+			Inputs = {
+				Background = Input {
+					SourceOp = "Loader1",
+					Source = "Output",
+				},
+				Foreground = Input {
+					SourceOp = "Merge1_1_1",
+					Source = "Output",
+				},
+				PerformDepthMerge = Input { Value = 0, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 460.521, 55.7165 } },
+		},
+		Saver1 = Saver {
+			Inputs = {
+				ProcessWhenBlendIs00 = Input { Value = 0, },
+				Clip = Input {
+					Value = Clip {
+						Filename = "/home/corey/nyc-mhtn-ds-021720/japanese_text_classifiers/img/class-balance_layers/class_balance_layers.mov",
+						FormatID = "QuickTimeMovies",
+						Length = 0,
+						Multiframe = true,
+						Saving = true,
+						TrimIn = 0,
+						ExtendFirst = 0,
+						ExtendLast = 0,
+						Loop = 1,
+						AspectMode = 0,
+						Depth = 0,
+						GlobalStart = -2000000000,
+						GlobalEnd = 0
+					},
+				},
+				OutputFormat = Input { Value = FuID { "QuickTimeMovies" }, },
+				["Gamut.SLogVersion"] = Input { Value = FuID { "SLog2" }, },
+				VideoType = Input { Value = FuID { "NTSC" }, },
+				Input = Input {
+					SourceOp = "Merge1",
+					Source = "Output",
+				},
+				["QuickTimeMovies.Compression"] = Input { Value = FuID { "Apple ProRes 422_apcn" }, },
+			},
+			ViewInfo = OperatorInfo { Pos = { 607.64, 63.8761 } },
+		}
+	},
+	Frames = {
+		{
+			FrameTypeID = "ChildFrame",
+			Mode = 3,
+			LayoutPreset = 0,
+			Left = 0,
+			Top = 27,
+			Width = 1920,
+			Height = 1090,
+			ZoneInfo = {
+				AuxRight = { Expanded = true },
+				Right = { Expanded = true, },
+				Left = { Expanded = false, },
+				AuxLeft = { Expanded = true },
+				["!Left"] = {
+				},
+				["!Right"] = {
+				}
+			},
+			ViewInfo = {
+				Keyframes = { Show = true, Adjust = false, RatioX = 0.5, RatioY = 1, MRU = 1 },
+				LayoutStrip = { Show = true, RatioX = 1, },
+				Inspector = { Show = true, RatioX = 1, RatioY = 1, },
+				Effects = { Show = false, },
+				Viewer2 = { Show = true, RatioX = 0.559491978609626, RatioY = 1, },
+				Comments = { Show = false },
+				Clips = { Show = false, },
+				ActionStrip = { Show = true, RatioX = 1, },
+				Time = { Show = true, RatioX = 1, PixelY = 83, },
+				MediaPool = { Show = false, },
+				Nodes = { Show = true, RatioX = 0.5, RatioY = 1, },
+				Metadata = { Show = false, },
+				Viewer1 = { Show = true, RatioX = 0.440508021390374, RatioY = 1, },
+				Spline = { Show = false, },
+				OuterColumns = {
+					RatioX = 1,
+					RatioY = 0.96688132474701,
+				},
+				OuterLeft = {
+				},
+				CenterSplit = {
+					RatioX = 0.781429316640584,
+					RatioY = 1,
+				},
+				OuterRight = {
+					PixelX = 419,
+					RatioY = 1,
+				},
+				InnerColumns = {
+					RatioX = 1,
+					RatioY = 0.510009532888465,
+				},
+				MainSplit = {
+					RatioX = 1,
+					RatioY = 0.44232602478551,
+				},
+				InnerLeft = {
+				},
+				InnerRight = {
+				},
+				ViewerSplit = {
+					RatioX = 1,
+					RatioY = 0.891644908616188,
+				}
+			},
+			Views = ordered() {
+				Effects = MultiView {
+					Active = "EffectView",
+					ViewList = ordered() {
+						EffectView = "EffectView"
+					},
+				},
+				Nodes = MultiView {
+					Active = "FlowView",
+					ViewList = ordered() {
+						FlowView = "FlowView"
+					},
+					Names = {
+						FlowView = "FlowView"
+					},
+					FlowView = FlowView {
+						Flags = {
+							Navigator = true,
+							AutoHideNavigator = true,
+							AutoSnap = true,
+							RemoveRouters = true
+						},
+						NavigatorSize = { 200, 140 },
+						Direction = "Horizontal",
+						PipeStyle = "Direct",
+						RootScale = 0.820742,
+						RootOffset = { -186.882, 60.1802 }
+					}
+				},
+				Keyframes = MultiView {
+					Active = "TimelineView",
+					ViewList = ordered() {
+						TimelineView = "TimelineView"
+					},
+					Names = {
+						TimelineView = "TimelineView"
+					},
+					TimelineView = TimelineView {
+						TreeControlState = {
+							{ "Background1", Expanded = true },
+							{ "Background1_1", Expanded = true }
+						},
+						DisplayMode = "All Tools",
+						ShowCurrentTimeTools = false,
+						Filter = "Show All",
+						ShowSelectedTools = false,
+						ShowAnimatedToolsOnly = false,
+						ShowEditBoxes = false,
+						KeyFrameView = {
+							Position = { Left = 232, Bottom = 402 },
+							ScaleX = 0.210746912079629,
+							OffsetX = -20.0209566475648,
+							OffsetY = 2,
+							AutoScaling = "scroll",
+							AutoSnapTo = "frame",
+							AutoSnapToGuidelines = false,
+							GuidelinesGrabEnabled = true,
+							GuidelinesSnapTo = "frame"
+						},
+						Spreadsheet = { LeftPos = 232, Visible = false }
+					}
+				},
+				Spline = MultiView {
+					Active = "SplineView",
+					ViewList = ordered() {
+						SplineView = "SplineEditorView"
+					},
+					Names = {
+						SplineView = "SplineView"
+					},
+					SplineView = SplineEditorView {
+						LeftPos = 264,
+						ScaleX = 0.2,
+						ScaleY = 0.00338983050847458,
+						OffsetX = -3.4,
+						OffsetY = 0,
+						AutoScaling = "scroll",
+						AutoSnapTo = "frame",
+						AutoSnapToGuidelines = false,
+						GuidelinesSnapTo = "frame",
+						ShowKeyMarkers = false,
+						IndependentHandles = false,
+						ShowNonSplineModifiers = false,
+						GuidelinesGrabEnabled = true,
+						ShowOneToolOnly = false,
+						ShowSelectedTools = false,
+						ShowAllInputs = false,
+						Filter = "Show All"
+					}
+				},
+				Inspector = MultiView {
+					Active = "Tools",
+					ViewList = ordered() {
+						Tools = "ControlView",
+						Modifiers = "ModifierView"
+					},
+				},
+				Viewer1 = MultiView {
+					Active = "LeftView",
+					ViewList = ordered() {
+						LeftView = "PreviewContainer"
+					},
+					Names = {
+						LeftView = "LeftView"
+					},
+				},
+				Viewer2 = MultiView {
+					Active = "RightView",
+					ViewList = ordered() {
+						RightView = "PreviewContainer"
+					},
+					Names = {
+						RightView = "RightView"
+					},
+				},
+				Time = "TimeView",
+				ActionStrip = "ActionStripView",
+				LayoutStrip = "LayoutStripView"
+			},
+			Layout = {
+				Rows = 2,
+				RatioX = 1,
+				RatioY = 1,
+				{ ID = "LayoutStrip", RatioX = 1, FixedY = 36, Flat = true },
+				{
+					Columns = 2,
+					RatioY = 0.96688132474701,
+					{
+						Rows = 3,
+						RatioX = 0.781429316640584,
+						RatioY = 1,
+						{
+							Rows = 2,
+							RatioX = 1,
+							RatioY = 1,
+							{
+								Columns = 2,
+								RatioX = 1,
+								RatioY = 0.891644908616188,
+								{ ID = "Viewer1", RatioX = 0.440508021390374, RatioY = 1 },
+								{ ID = "Viewer2", RatioX = 0.559491978609626 }
+							},
+							{ ID = "Time", FixedY = 83, Flat = true }
+						},
+						{ ID = "ActionStrip", FixedY = 50, Flat = true },
+						{
+							Columns = 2,
+							RatioY = 0.44232602478551,
+							{ ID = "Nodes", RatioX = 0.5, RatioY = 1 },
+							{ ID = "Keyframes", RatioX = 0.5 }
+						}
+					},
+					{ ID = "Inspector", RatioX = 1, RatioY = 1 }
+				}
+			}
+		}
+	},
+	Prefs = {
+		Comp = {
+			Views = {
+				View1 = {
+				},
+				LeftView = {
+					PickW = 1,
+					PickH = 1,
+				},
+				RightView = {
+					PickW = 1,
+					PickH = 1,
+				}
+			},
+			Unsorted = {
+				GlobalEnd = 30,
+				RenderSettings = {
+					Configs = {
+						Final = {
+							Quality = true,
+							MotionBlur = true,
+							UpdateMode = "Some",
+							UseNetwork = false,
+							SizeType = 1,
+							CustomWidth = 200,
+							CustomHeight = 160,
+							CustomAspect = true,
+							StepRender = false,
+							StepSize = 5,
+							PriorityClasses = "all",
+							ShowSlaves = false
+						},
+						Preview = {
+							Quality = true,
+							MotionBlur = true,
+							UpdateMode = "Some",
+							UseNetwork = false,
+							SizeType = 1,
+							CustomWidth = 200,
+							CustomHeight = 160,
+							CustomAspect = true,
+							StepRender = false,
+							StepSize = 5,
+							PriorityClasses = "all",
+							ShowSlaves = false
+						}
+					},
+					CurrentConfig = "Final",
+					PreviewConfig = "Preview"
+				}
+			},
+			Paths = {
+			},
+			QuickTime = {
+			},
+		}
+	},
+}
+
+ 

@@ -21,9 +21,9 @@ Leverage what existing datasets are available that could be applied for immediat
 <img src ="img/so-smooth.png" alt="character drawn using the app"></img>
 
 ## The Notebooks
-* [General training with the Kuzushiji Hiragana Dataset](initial_findings/kuzushiji_notebook.ipynb)
+* [General training with the Kuzushiji Hiragana Dataset](initial_findings/kuzushiji_notebook.html)
 * [Building a base for transfer learning](initial_findings/kanji_transfer.ipynb)
-* [Applying the models to original data](initial_findings/modeling_with_new_data.md)
+* [Applying the models to original data](initial_findings/modeling_with_new_data.html)
 
 ## The Roadmap:
 ### A general loose order of things to come:
