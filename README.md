@@ -12,16 +12,18 @@ Instead of separating the two the entire time, it could be far more efficient to
 
 ## The Plan:
 
-Leverage what existing datasets are available that could be applied for immediate baseline evaluation/transfer learning. Begin collecting data with a stripped dowm app, but transition it into a full fledged learning tool that leverages Tensorflow Lite and provides an opt in for users to submit their writing data to build/improve the models.
+Leverage what existing datasets are available that could be applied for immediate baseline evaluation/transfer learning. Begin collecting data with a stripped down app, but transition it into a full fledged learning tool that leverages Tensorflow Lite and provides an opt in for users to submit their writing data to build/improve the models.
 
 ## The Data:
 * Hundreds of thousands of classified classical Japanese glyphs from the [Kuzushiji-49 dataset](https://github.com/rois-codh/kmnist/tree/12d650ef8a97d4e051d7650644912f9500067df6).
-* Independent capture of digital writing leveraged from a simple [mobile phone app](https://github.com/coreyryanhanson/choubenkyo_kivy_app). ****yet to be implemented**
+* Independent capture of digital writing leveraged from a simple [mobile phone app](https://github.com/coreyryanhanson/choubenkyo_kivy_app).
+
+<img src ="img/so-smooth.png" alt="character drawn using the app"></img>
 
 ## The Notebooks
-# [General training with the Kuzushiji Hiragana Dataset](kuzushiji_notebook.ipynb)
-# [Building a base for transfer learning](kanji_transfer.ipynb)
-# [Applying the models to original data](modeling_with_new_data.ipynb)
+* [General training with the Kuzushiji Hiragana Dataset](initial_findings/kuzushiji_notebook.ipynb)
+* [Building a base for transfer learning](initial_findings/kanji_transfer.ipynb)
+* [Applying the models to original data](initial_findings/modeling_with_new_data.ipynb)
 
 ## The Roadmap:
 ### A general loose order of things to come:
