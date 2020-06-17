@@ -1,4 +1,4 @@
-model_backups
+model_backups/*
 presentation
 xxARCHIVE
 .ipynb_checkpoints
@@ -8,3 +8,4 @@ data/kuzushiji49/train
 data/kuzushiji49/k49_classmap.csv
 functions/__pycache__
 initial_findings/.ipynb_checkpoints
+!model_backups/tf_gen_kanji
