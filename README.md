@@ -2,7 +2,7 @@
 
 An open sourced Japanese digital writing classification model that makes predictions based on generated observations from drawing interaction from an android app.
 
-<img src="img/hidden_layers/transferlearning_custom/customhl4_social.jpg" alt="Hidden layers"></img>
+<img src="img/hidden_layers/transferlearning_custom/customhl4_social.png" alt="Hidden layers"></img>
 
 This readme refers pertains to what will be done with [a working implementation with the newest data](current_modeling.ipynb). If you are looking for a more complete methodology for the preliminary investigation across several datasets, you can find that here:
 
