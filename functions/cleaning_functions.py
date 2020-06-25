@@ -3,6 +3,9 @@ import gzip
 import numpy as np
 
 from imblearn.over_sampling import SMOTE
+from PIL import Image, ImageDraw, ImageOps
+from sklearn.model_selection import train_test_split
+from tensorflow.keras.utils import to_categorical
 from tensorflow.keras.preprocessing.image import array_to_img
 
 from geomdl import BSpline
@@ -174,6 +177,50 @@ def parse_to_points_list(points_dict, sample_size=120, degree=3):
     """Converts a dictionary of recorded points to a standard length and vertically reflects them to match PIL's coordinate system."""
 
     return [resample_coords_smooth([1, -1] * value, sample_size, degree) for key, value in sorted(points_dict.items())]
+
+
+def preprocess_lstm_pipeline(array, labels, test_size=None, val_size=None, random_seed=None):
+    nobs, sequence_length, nfeatures = array.shape
+
+    # App provides possible values range from -1 to 1. The sin and cosine values of the angles also contain this range. This will
+    # standardize the data for machine learning, while also preserving information present in the relative size of a drawing.
+    scaled_array = (array.copy() + 1) / 2
+    labels = labels.copy()
+
+    array1d = scaled_array.reshape([nobs, -1])
+
+    if test_size and val_size:
+        print("Performing a train, test, validation split.")
+        X_int, X_test, y_int, y_test = train_test_split(array1d, labels, test_size=test_size, random_state=random_seed)
+        X_train, X_val, y_train, y_val = train_test_split(X_int, y_int, test_size=val_size, random_state=random_seed)
+        return X_train.reshape([-1, sequence_length, nfeatures]), X_val.reshape(
+            [-1, sequence_length, nfeatures]), X_test.reshape([-1, sequence_length, nfeatures]), to_categorical(
+            y_train), to_categorical(y_val), to_categorical(y_test)
+    if test_size or val_size:
+        print("Performing a train, test split.")
+        test_size = max([test_size, val_size])
+        X_train, X_test, y_train, y_test = train_test_split(array1d, labels, test_size=test_size,
+                                                            random_state=random_seed)
+        return X_train.reshape([-1, sequence_length, nfeatures]), X_test.reshape(
+            [-1, sequence_length, nfeatures]), to_categorical(y_train), to_categorical(y_test)
+    else:
+        print("Skipping train, test, split")
+        return scaled_array, to_categorical(labels)
+
+        # One hot encodes the labels in order to be fit to the lstm.
+    labels = to_categorical(labels.copy())
+
+def render_coordinates_file_to_img(coord_list, resolution=(28, 28), stroke_width=2):
+    """takes a list of strokes and uses Pillow's image draw function after scaling them to fill the desired resolution."""
+
+    # Scales linedata to have a centered maximum fit within the desired resoltion.
+    scaled = scale_points_for_pixels(coord_list, resolution, stroke_width)
+
+    img = Image.new('L', resolution, color=0)
+    draw = ImageDraw.Draw(img)
+    for coords in scaled:
+        line_from_array(draw, coords, width=stroke_width)
+    return img
 
 
 def resample_coords_smooth(coords, sample_size=120, degree=3):
