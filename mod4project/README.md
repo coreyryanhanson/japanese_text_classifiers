@@ -2,9 +2,11 @@
 
 An open sourced Japanese digital writing classification model that makes predictions based on generated observations from drawing interaction from an android app.
 
-<img src="mod4/project/img/hidden_layers/transferlearning_custom/customhl4_social.png" alt="Hidden layers"></img>
+<img src="img/hidden_layers/transferlearning_custom/customhl4_social.png" alt="Hidden layers"></img>
 
-This project started out as an assignment with a deadline of only a few weeks that ended up being a race against time to squeeze in an MVP in the form of a CNN with an existing datastet while building my first Android app to facilitate creating a new dataset from scratch that would be used for my actual idea. If you are here to see the initial version and notebooks, those parts have been archived [here](/mod4project)
+This readme refers pertains to what will be done with [a working implementation with the newest data](current_modeling.ipynb). If you are looking for a more complete methodology for the preliminary investigation across several datasets, you can find that here:
+
+[/mod4project/initial_findings/](initial_findings/)
 
 ## The Roadmap:
 **Stage 1** - Build an OCR recognition model using existing data from the Kuzushiji-49. The observations have a degree of separation from the goal of this project, but it also provides an advantages in terms of comparison/future generalizations in that it's classification is a more difficult task since the historical kuzushiji script is less standardized.<br>**Completed-6/16/2020**
