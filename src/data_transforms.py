@@ -33,22 +33,6 @@ class ToBSplines:
         self.degree = degree
         self.smooth = smooth_points
 
-    # def _smooth_resample_orig(self, coords: list[float]) -> list[float]:
-    #    """Slower function will be deprecated in favor of the implementation
-    #    from scipy."""
-    #    # Prevents code from breaking when the stroke contains too few values.
-    #    if len(coords) <= self.degree:
-    #        pad = [coords[-1]] * (1 + self.degree - len(coords))
-    #        coords.extend(pad)
-
-    #    curve = BSpline.Curve()
-    #    curve.degree = self.degree
-    #    curve.ctrlpts = coords
-    #    curve.knotvector = generate_knot_vector(self.degree,
-    #                                            len(curve.ctrlpts))
-    #    curve.sample_size = self.sample_size
-    #    return curve.evalpts
-
     def _generate_matched_x_linspace(self,
                                      array: npt.NDArray[np.float32]
                                      ) -> npt.NDArray[np.float32]:
@@ -57,7 +41,6 @@ class ToBSplines:
         smoother curve."""
         array = np.diff(array, axis=0)
         array = np.hypot(array[:, 0], array[:, 1])
-        array[array == 0] = np.nextafter(np.float16(0.), np.float16(1.))
         array = np.cumsum(np.concatenate([[0], array]))
         # If the input scale perfectly matches the distance between the x and
         # y points, sometimes the endpoints exhibit deformations. This will
@@ -137,11 +120,31 @@ class ExtractAngles:
 
 
 class EmptyStrokePadder:
-    """Torch transform that takes input of [strokes, points, features] and pads
-    the output
+    """Torch transform that conforms a single dimension by padding specified
+    values to the end of a single axis.
+
+    Args:
+        stroke_count (int, optional): The size of the axis after padding is
+            complete. Defaults to 40.
+        pad_dim (int, optional): The dimension to pad. Defaults to 0.
+        pad_value (float, optional): The constant values of the pad. Defaults
+            to 0.
     """
-    def __init__(self, stroke_count: int = 40) -> None:
+    def __init__(self,
+                 stroke_count: int = 40,
+                 pad_dim: int = 0,
+                 pad_value: float = 0
+                 ) -> None:
         self.stroke_count = stroke_count
+        self.pad_dim = pad_dim
+        self.pad_value = pad_value
+
+    def _specify_pad(self, sample: torch.Tensor) -> list[int]:
+        pad_size = self.stroke_count - sample.shape[0]
+        pad = [0] * 2 * len(sample.shape)
+        pad_dim = -self.pad_dim * 2 - 1
+        pad[pad_dim] = pad_size
+        return pad
 
     def __call__(self, sample: torch.Tensor) -> torch.Tensor:
         n_strokes = sample.shape[0]
@@ -150,9 +153,8 @@ class EmptyStrokePadder:
         if n_strokes > self.stroke_count:
             raise RuntimeError("stroke_count cannot be less than the"
                                "actual number of strokes")
-        pad_size = self.stroke_count - n_strokes
-        pad = (0, 0, 0, 0, 0, pad_size)
-        return f.pad(sample, pad, mode="constant", value=0)
+        pad = self._specify_pad(sample)
+        return f.pad(sample, pad, mode="constant", value=self.pad_value)
 
 
 class StrokesToPil:
@@ -166,17 +168,22 @@ class StrokesToPil:
             if the coordinate systems are reversed. Defaults to True.
         multicolor (bool, optional): Whether output pixels with a different hue
             for each stroke or to keep as a grayscale image. Defaults to False.
+        mc_hue_shift (int, optional): When multicolor is enabled, this
+            determines the amount to shift the hue after each stroke. Defaults
+            to 10.
     """
     def __init__(self,
                  output_resolution: tuple[int, int],
                  stroke_width: int = 2,
                  invert_y: bool = True,
                  multicolor: bool = False,
+                 mc_hue_shift: int = 10,
                  ) -> None:
         self._resolution = output_resolution
         self._stroke_width = stroke_width
         self._invert_y = invert_y
         self._multicolor = multicolor
+        self._hue_shift = mc_hue_shift
 
     def _draw_line(self,
                    draw: ImageDraw.ImageDraw,
@@ -199,7 +206,7 @@ class StrokesToPil:
                 fill = tuple(round(channel*255)
                              for channel in hsv_to_rgb(hue/360, 1, 1))
                 self._draw_line(draw, stroke, fill=fill)
-                hue += 10
+                hue += self._hue_shift
         else:
             for stroke in points:
                 self._draw_line(draw, stroke, fill=255)
@@ -235,13 +242,12 @@ class StrokesToPil:
             stroke = np.array(stroke)
             scaled_x = np.interp(stroke.T[0],
                                  x_bounds,
-                                 (0 + buffer, self._resolution[0] - buffer),
-                                 dtype=np.float32)
+                                 (0 + buffer, self._resolution[0] - buffer))
             scaled_y = np.interp(stroke.T[1],
                                  y_bounds,
-                                 (0 + buffer, self._resolution[1] - buffer),
-                                 dtype=np.float32)
-            new_points.append(np.stack((scaled_x, scaled_y)).T)
+                                 (0 + buffer, self._resolution[1] - buffer))
+            new_points.append(np.stack((scaled_x,
+                                        scaled_y)).T.astype(np.float32))
         return new_points
 
     def __call__(self,
