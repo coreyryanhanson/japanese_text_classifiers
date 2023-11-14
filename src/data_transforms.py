@@ -140,14 +140,14 @@ class EmptyStrokePadder:
         self.pad_value = pad_value
 
     def _specify_pad(self, sample: torch.Tensor) -> list[int]:
-        pad_size = self.stroke_count - sample.shape[0]
+        pad_size = self.stroke_count - sample.shape[self.pad_dim]
         pad = [0] * 2 * len(sample.shape)
         pad_dim = -self.pad_dim * 2 - 1
         pad[pad_dim] = pad_size
         return pad
 
     def __call__(self, sample: torch.Tensor) -> torch.Tensor:
-        n_strokes = sample.shape[0]
+        n_strokes = sample.shape[self.pad_dim]
         if n_strokes == self.stroke_count:
             return sample
         if n_strokes > self.stroke_count:
@@ -259,3 +259,5 @@ class StrokesToPil:
         if self._invert_y:
             img = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         return img
+
+
