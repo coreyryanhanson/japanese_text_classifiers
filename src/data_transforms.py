@@ -259,5 +259,3 @@ class StrokesToPil:
         if self._invert_y:
             img = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         return img
-
-
