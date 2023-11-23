@@ -36,8 +36,7 @@ class AnimatedStrokes:
                  hue_shift: int = 40,
                  point_size: int = 20,
                  point_color: tuple[float, ...] = (0.5, 0.5, 0.5, 0.5),
-                 line_width: int = 3,
-                 force_stop_on_refresh: bool = False
+                 line_width: int = 3
                  ) -> None:
         self.strokes = self._set_strokes(strokes)
         self.hue_shift = hue_shift
