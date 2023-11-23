@@ -86,6 +86,15 @@ class StrokeDataPaths:
             raise RuntimeError(f"There are no json files in {directory}")
         self._paths = pd.concat([paths, self._extract_labels(paths)], axis=1)
 
+    def get_classes(self) -> pd.DataFrame:
+        """Gets the entire stored Dataframe of the information for each class.
+
+        Returns:
+            pd.DataFrame: A pandas Dataframe with columns for the id,
+            character, and stroke count of each class.
+        """
+        return self._classes
+
     def get_data(self) -> pd.DataFrame:
         """Gets the entire stored Dataframe of dataset paths.
 
@@ -181,17 +190,48 @@ class StrokeDataset(Dataset):
             n_strokes = self._n_strokes
         return [output[str(i)] for i in range(1, n_strokes + 1)]
 
-    def __getitem__(self, idx: int) -> tuple[list[list[list[float]]], int]:
+    def _translate_index(self, idx: int) -> int:
         if self._n_strokes is None:
-            pass
+            return idx
         # If the datasaet has a stroke count restraint indexes are converted
         # to paths within a smaller subset.
-        elif self._n_strokes > 1 or (self._n_strokes == 1 and
-                                     self._indices is not None):
-            idx = self._indices[idx]
+        if self._n_strokes > 1 or (self._n_strokes == 1 and
+                                   self._indices is not None):
+            return self._indices[idx]
+        return idx
+
+    def __getitem__(self, idx: int) -> tuple[list[list[list[float]]], int]:
+        idx = self._translate_index(idx)
         data = self._load_json(idx)
         if self.transform:
             data = self.transform(data)
+        return data, self.labels[idx]
+
+    def get_path(self, idx: int) -> str:
+        """Selects the filepath that leads to the data for the dataset at a
+        given index.
+
+        Args:
+            idx (int): An index to chose.
+
+        Returns:
+            str: A filepath string.
+        """
+        idx = self._translate_index(idx)
+        return self.paths[idx]
+
+    def get_raw(self, idx: int) -> tuple[list[list[list[float]]], int]:
+        """Selects data and labels from the dataset, but bypasses transforms.
+
+        Args:
+            idx (int): An index to chose.
+
+        Returns:
+            tuple[list[list[list[float]]], int]: A nested list of x and y
+            coordinates for each stroke.
+        """
+        idx = self._translate_index(idx)
+        data = self._load_json(idx)
         return data, self.labels[idx]
 
     def set_stroke_count(

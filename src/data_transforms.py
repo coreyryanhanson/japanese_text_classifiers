@@ -10,6 +10,8 @@ from scipy.interpolate import make_interp_spline
 import torch
 import torch.nn.functional as f
 
+from .utils import HueShifter
+
 
 class ToBSplines:
     """Transform callable class that will conform a nested list of stroke
@@ -201,12 +203,11 @@ class StrokesToPil:
         img = Image.new(mode, self._resolution, color=0)
         draw = ImageDraw.Draw(img)
         if self._multicolor:
-            hue = 0
+            hues = HueShifter(initial_hue=0, hue_step=self._hue_shift)
             for stroke in points:
-                fill = tuple(round(channel*255)
-                             for channel in hsv_to_rgb(hue/360, 1, 1))
+                fill = hues.get_rgb_ints()
                 self._draw_line(draw, stroke, fill=fill)
-                hue += self._hue_shift
+                hues.step()
         else:
             for stroke in points:
                 self._draw_line(draw, stroke, fill=255)

@@ -8,6 +8,7 @@ import numpy.typing as npt
 import pandas as pd
 from sklearn.metrics import accuracy_score, balanced_accuracy_score
 import torch
+import torch.nn as nn
 
 
 class TrainerGeneric:
@@ -86,7 +87,10 @@ class TrainerGeneric:
         print(output)
         return output
 
-    def _get_last_epoch(self):
+    def _get_last_epoch(self) -> int:
+        if self.complete_results is None:
+            self._capture_lr()
+            return 0
         return self.complete_results.index[-1]
 
     def _set_learning_rate_cols(self) -> list[str]:
@@ -96,14 +100,21 @@ class TrainerGeneric:
         else:
             return [f"lr{i}" for i in range(len(opt_params))]
 
-    def _update_results(self,
-                        results_list: list[pd.DataFrame]
-                        ) -> pd.DataFrame:
-        self.current_results = pd.concat(results_list, axis=0)
+    def _combine_results_rows(self,
+                              results_list: list[pd.DataFrame]
+                              ) -> pd.DataFrame:
+        df = pd.concat(results_list, axis=0)
+        for column in df.columns[df.columns.str.startswith("n_")].values:
+            df[column] = df[column].astype(int)
+        return df
+
+    def _update_results(self, results_list: list[pd.DataFrame]) -> None:
+        self.current_results = self._combine_results_rows(results_list)
         if self.complete_results is None:
             self.complete_results = self.current_results
         else:
-            self.current_results.index = self.current_results.index + self._get_last_epoch()
+            self.current_results.index = (self.current_results.index +
+                                          self._get_last_epoch())
             self.complete_results = pd.concat([self.complete_results,
                                                self.current_results], axis=0)
 
@@ -225,3 +236,19 @@ class CharacterTrainer(TrainerGeneric):
         n_obs = len(self.dataloaders[process].dataset)
         accuracy = self._calc_accuracy(epoch_labels, epoch_predictions)
         return [total_loss/n_obs, accuracy], n_obs
+
+    def check_predictions(self, dataset, temperature=1):
+        self.model.eval()
+        results = []
+        with self._device_context(self.model), torch.no_grad():
+            for i, (inputs, label) in enumerate(dataset):
+                inputs = inputs.to(self.device)
+                outputs = self.model(inputs.unsqueeze(0))[0]
+                _, predicted = torch.max(outputs, 1)
+                predicted = predicted.squeeze().item()
+                if label != predicted:
+                    if temperature != 1:
+                        outputs = outputs / temperature
+                    softmax = nn.Softmax(dim=1)
+                    results.append((i, softmax(outputs).to("cpu")))
+        return results
