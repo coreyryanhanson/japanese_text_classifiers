@@ -208,6 +208,10 @@ class IncorrectCharacters:
         label_df.insert(4, "strokes_found", len(strokes))
         return label_df
 
+    def _stop_animation(self) -> None:
+        if self._anim is not None:
+            self._anim.force_stop_animation()
+
     def compare(self, i: int, top_n: int) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Picks one of the incorrect predictions showing the full detail about
             the actual label and n guesses with next highest probabilities.
@@ -259,8 +263,8 @@ class IncorrectCharacters:
         info = self._get_label_details(i)
         path = self._dataset.get_path(i)
         data = self._dataset.get_raw(i)[0]
-        if force_stop_previous and self._anim is not None:
-            self._anim.force_stop_animation()
+        if force_stop_previous:
+            self._stop_animation()
         self._anim = AnimatedStrokes(data)
         self._anim.plot(figwidth, repeat_delay=1000)
         print(info)
