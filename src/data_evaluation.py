@@ -36,7 +36,8 @@ class AnimatedStrokes:
                  hue_shift: int = 40,
                  point_size: int = 20,
                  point_color: tuple[float, ...] = (0.5, 0.5, 0.5, 0.5),
-                 line_width: int = 3
+                 line_width: int = 3,
+                 force_stop_on_refresh: bool = False
                  ) -> None:
         self.strokes = self._set_strokes(strokes)
         self.hue_shift = hue_shift
@@ -64,6 +65,19 @@ class AnimatedStrokes:
         ax = plt.axes((0., 0., 1., 1.), xlim=(xmin, xmax), ylim=(ymin, ymax))
         return fig, ax
 
+    def _create_crosshairs(self,
+                           ax: plt.Axes,
+                           span: float = 0.9,
+                           dashes: tuple[int, int] = (4, 8)
+                           ) -> None:
+        for x, y in [[[0, 0], [-span, span]], [[-span, span], [0, 0]]]:
+            ax.plot(x,
+                    y,
+                    linestyle="dashed",
+                    dashes=dashes,
+                    color=self.point_color,
+                    linewidth=self.line_width/2)
+
     def _set_style(self,
                    fig: plt.Figure,
                    ax: plt.Axes
@@ -71,6 +85,7 @@ class AnimatedStrokes:
         ax.axis('off')
         fig.patch.set_facecolor("#000000")
         # ax.set_facecolor((0, 0, 0))
+        self._create_crosshairs(ax)
         return fig, ax
 
     def _build_lineplots(self, ax: plt.Axes) -> list[Line2D]:
@@ -122,6 +137,14 @@ class AnimatedStrokes:
                              frames=frames,
                              blit=True,
                              repeat=True)
+
+    def force_stop_animation(self) -> None:
+        """Forces the animation object to stop. Useful if multiple instances
+        of the object are called and old ones are hindering performance.
+        """
+        if self._anim is not None:
+            self._anim._stop()
+            self._anim = None
 
     def plot(self,
              figwidth: float = 6,
@@ -212,7 +235,10 @@ class IncorrectCharacters:
         probabilities = probabilities.join(self._classes, how="left")
         return actual, probabilities
 
-    def examine(self, i: int, figwidth: float = 6) -> str:
+    def examine(self, i: int,
+                figwidth: float = 6,
+                force_stop_previous: bool = False
+                ) -> str:
         """Function to provide useful metrics when evaluating an incorrect
         prediction. Shows the full label information, the path of the file,
         and renders an animation of the points and lines forming the character
@@ -222,6 +248,11 @@ class IncorrectCharacters:
             i (int): Index of incorrect prediction to examine.
             figwidth (float, optional): The one dimension of the figure size.
                 Output will be square. Defaults to 6.
+            force_stop_previous (bool, optional): If the matplotlib
+                FuncAnimator object has lingering references, subsequent runs
+                will negatively affect future performance. Enable this to
+                ensure each time the plot method is run, the old process is
+                ended. Defaults to False.
 
         Returns:
             str: The file path of the data being examined.
@@ -229,7 +260,10 @@ class IncorrectCharacters:
         info = self._get_label_details(i)
         path = self._dataset.get_path(i)
         data = self._dataset.get_raw(i)[0]
-        self._anim = AnimatedStrokes(data)
+        if force_stop_previous and self._anim is not None:
+            self._anim.force_stop_animation()
+        self._anim = AnimatedStrokes(data,
+                                     force_stop_on_refresh=force_stop_previous)
         self._anim.plot(figwidth, repeat_delay=1000)
         print(info)
         return path
