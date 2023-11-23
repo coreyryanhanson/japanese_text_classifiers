@@ -261,8 +261,7 @@ class IncorrectCharacters:
         data = self._dataset.get_raw(i)[0]
         if force_stop_previous and self._anim is not None:
             self._anim.force_stop_animation()
-        self._anim = AnimatedStrokes(data,
-                                     force_stop_on_refresh=force_stop_previous)
+        self._anim = AnimatedStrokes(data)
         self._anim.plot(figwidth, repeat_delay=1000)
         print(info)
         return path
