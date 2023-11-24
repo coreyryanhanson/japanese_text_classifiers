@@ -211,6 +211,7 @@ class IncorrectCharacters:
     def _stop_animation(self) -> None:
         if self._anim is not None:
             self._anim.force_stop_animation()
+            plt.close()
 
     def compare(self, i: int, top_n: int) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Picks one of the incorrect predictions showing the full detail about
@@ -225,7 +226,7 @@ class IncorrectCharacters:
             tuple[pd.DataFrame, pd.DataFrame]: Information about the actual
             label and a table of softmax results.
         """
-        actual, probabilities = self._misses[i]
+        i, probabilities = self._misses[i]
         actual = self._get_label_details(i)
         probabilities, indices = torch.topk(probabilities,
                                             top_n,
@@ -260,6 +261,7 @@ class IncorrectCharacters:
         Returns:
             str: The file path of the data being examined.
         """
+        i, _ = self._misses[i]
         info = self._get_label_details(i)
         path = self._dataset.get_path(i)
         data = self._dataset.get_raw(i)[0]
