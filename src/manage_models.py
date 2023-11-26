@@ -118,14 +118,19 @@ class TrainerGeneric:
             self.complete_results = pd.concat([self.complete_results,
                                                self.current_results], axis=0)
 
+    def _send_batch_components_to_device(self,
+                                         batch: tuple[torch.Tensor, ...]
+                                         ) -> tuple[torch.Tensor, ...]:
+        return tuple((item.to(self.device) for item in batch))
+
     def _process_batch(self,
-                       batch: torch.Tensor,
+                       batch: tuple[torch.Tensor, ...],
                        labels: torch.Tensor,
                        is_train: bool):
         """Captures loss and predicted label values with optional
         backpropagation if is_train is enabled.
         """
-        batch = batch.to(self.device)
+        batch = self._send_batch_components_to_device(batch)
         labels = labels.to(self.device, copy=True)
         outputs = self.model(batch)[0]
         loss = self.criterion(outputs, labels)
@@ -228,7 +233,8 @@ class CharacterTrainer(TrainerGeneric):
             self.model.eval()
 
         with torch.no_grad() if not is_train else nullcontext():
-            for batch, labels in self.dataloaders[process]:
+            for data in self.dataloaders[process]:
+                batch, labels = data[:-1], data[-1]
                 loss, predicted = self._process_batch(batch, labels, is_train)
                 total_loss += loss
                 epoch_labels.append(labels.numpy())
@@ -241,8 +247,9 @@ class CharacterTrainer(TrainerGeneric):
         self.model.eval()
         results = []
         with self._device_context(self.model), torch.no_grad():
-            for i, (inputs, label) in enumerate(dataset):
-                inputs = inputs.to(self.device)
+            for i, data in enumerate(dataset):
+                inputs, label = data[:-1], data[-1]
+                inputs = self._send_batch_components_to_device(inputs)
                 outputs = self.model(inputs.unsqueeze(0))[0]
                 _, predicted = torch.max(outputs, 1)
                 predicted = predicted.squeeze().item()
