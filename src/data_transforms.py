@@ -260,3 +260,25 @@ class StrokesToPil:
         if self._invert_y:
             img = img.transpose(Image.Transpose.FLIP_TOP_BOTTOM)
         return img
+
+
+class InputNormalizer:
+    """Normalizes a dimension of a single tensor among multiple.
+    Args:
+        input_idx (int): The index of the input iterable indicating where the
+            tensor is located.
+        dim (int): The dimension to normalize.
+    """
+    def __init__(self, input_idx: int, dim: int) -> None:
+        self._input_idx = input_idx
+        self._dim = dim
+
+    def _normalize(self, sample: torch.Tensor) -> torch.Tensor:
+        return f.normalize(sample, dim=self._dim)
+
+    def __call__(self,
+                 samples: tuple[torch.Tensor, ...]
+                 ) -> tuple[torch.Tensor, ...]:
+        as_list = list(samples)
+        as_list[self._input_idx] = self._normalize(as_list[self._input_idx])
+        return tuple(samples)

@@ -41,7 +41,9 @@ class StrokeDataPaths:
             # Delete this when optional characters are included
             df = df[~df[self._class_char_col].isin(["we", "wi"])].reset_index(drop=True)
 
-            df[self._label_col] = slug + "_" + df[self._class_char_col]
+            df.insert(0,
+                      self._label_col, slug + "_" + df[self._class_char_col])
+            #df[self._label_col] = slug + "_" + df[self._class_char_col]
             dfs.append(df)
         return pd.concat(dfs, ignore_index=True)
 

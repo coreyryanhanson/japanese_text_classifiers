@@ -1,7 +1,7 @@
 """A module that contains methods to assist examining the results after
 training a model."""
 
-from typing import Optional
+from typing import Optional, Union
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
@@ -202,16 +202,98 @@ class IncorrectCharacters:
     def __len__(self) -> int:
         return len(self._misses)
 
+    def _generate_label_row(self,
+                            label: int,
+                            strokes_found: Union[int, float]
+                            ) -> pd.DataFrame:
+        df = pd.DataFrame(self._classes.iloc[label]).T
+        df["strokes_found"] = strokes_found
+        return df
+
     def _get_label_details(self, i: int) -> pd.DataFrame:
         strokes, label = self._dataset.get_raw(i)
-        label_df = pd.DataFrame(self._classes.iloc[label]).T
-        label_df.insert(4, "strokes_found", len(strokes))
-        return label_df
+        return self._generate_label_row(label, len(strokes))
+
+    def _get_all_missed_labels(self) -> npt.NDArray[np.int32]:
+        return np.array([self._dataset.get_raw(self._misses[i][0])[1]
+                         for i in range(len(self))], dtype=np.int32)
+
+    def _sort_misses(self) -> tuple[dict[int, list[torch.Tensor]],
+                                    dict[int, list[int]],
+                                    dict[int, list[int]]]:
+        tensors = {}
+        indices = {}
+        strokes = {}
+        for i in range(len(self)):
+            j, _ = self._misses[i]
+            stroke_data, label = self._dataset.get_raw(j)
+            tensor = self._misses[i][1]
+            stroke_count = len(stroke_data)
+
+            if indices.get(label, None) is None:
+                tensors[label] = [tensor]
+                indices[label] = [i]
+                strokes[label] = [stroke_count]
+            else:
+                tensors[label].append(tensor)
+                indices[label].append(i)
+                strokes[label].append(stroke_count)
+        return (tensors, indices, strokes)
 
     def _stop_animation(self) -> None:
         if self._anim is not None:
             self._anim.force_stop_animation()
             plt.close()
+
+    def _create_probability_table(self,
+                                  probabilities: torch.Tensor,
+                                  top_n: int
+                                  ) -> pd.DataFrame:
+        probability_column = "probability"
+        columns = self._classes.columns
+        columns = columns.insert(1, probability_column)
+        probabilities, indices = torch.topk(probabilities,
+                                            top_n,
+                                            dim=1,
+                                            largest=True,
+                                            sorted=True)
+        df = pd.DataFrame(probabilities.t(),
+                          index=indices.squeeze().numpy(),
+                          columns=[probability_column])
+        return df.join(self._classes, how="left")[columns]
+
+    def _generate_overview_label_row(self,
+                                     indices: dict[int, list[int]],
+                                     strokes: dict[int, list[int]],
+                                     label: int
+                                     ) -> pd.DataFrame:
+        stroke_count = np.mean(strokes[label])
+        label_info = self._generate_label_row(label, stroke_count)
+        label_info.insert(4, "indices", ", ".join([str(idx)
+                                                   for idx in indices[label]]))
+        label_info.insert(0, "count", len(indices[label]))
+        return label_info
+
+    def _generate_overview_multiindex(self,
+                                      label_info: pd.DataFrame,
+                                      top_n: int
+                                      ) -> pd.MultiIndex:
+        idx = [(*label_info.values[0].tolist(), i+1) for i in range(top_n)]
+        names = label_info.columns.tolist() + ["pred"]
+        return pd.MultiIndex.from_tuples(idx, names=names)
+
+    def _make_probability_overview_set(self,
+                                       tensors: dict[int, list[torch.Tensor]],
+                                       indices: dict[int, list[int]],
+                                       strokes: dict[int, list[int]],
+                                       label: int,
+                                       top_n: int
+                                       ) -> pd.DataFrame:
+        averages = torch.stack(tensors[label], dim=0).mean(dim=0)
+        df = self._create_probability_table(averages, top_n)
+        label_info = self._generate_overview_label_row(indices, strokes, label)
+        df.index = self._generate_overview_multiindex(label_info, top_n)
+        return df
 
     def compare(self, i: int, top_n: int) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Picks one of the incorrect predictions showing the full detail about
@@ -228,16 +310,31 @@ class IncorrectCharacters:
         """
         i, probabilities = self._misses[i]
         actual = self._get_label_details(i)
-        probabilities, indices = torch.topk(probabilities,
-                                            top_n,
-                                            dim=1,
-                                            largest=True,
-                                            sorted=True)
-        probabilities = pd.DataFrame(probabilities.t(),
-                                     index=indices.squeeze().numpy(),
-                                     columns=["probability"])
-        probabilities = probabilities.join(self._classes, how="left")
+        probabilities = self._create_probability_table(probabilities, top_n)
         return actual, probabilities
+
+    def overview(self, top_n: int) -> pd.DataFrame:
+        """Aggregates all incorrectly classified data into a dataframe with
+        general stats for each label.
+
+        Args:
+            top_n (int): Determines the n next highest values to show after
+                the softmax has been applied.
+
+        Returns:
+            pd.DataFrame: A Pandas dataframe with details for each
+            misclassified label
+        """
+        output = []
+        tensors, indices, strokes = self._sort_misses()
+        for label in indices.keys():
+            output.append(self._make_probability_overview_set(tensors,
+                                                              indices,
+                                                              strokes,
+                                                              label,
+                                                              top_n))
+        df = pd.concat(output, axis=0)
+        return df.sort_index(level=0, ascending=False, sort_remaining=False)
 
     def examine(self, i: int,
                 figwidth: float = 6,

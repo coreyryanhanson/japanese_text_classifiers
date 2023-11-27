@@ -243,6 +243,9 @@ class CharacterTrainer(TrainerGeneric):
         accuracy = self._calc_accuracy(epoch_labels, epoch_predictions)
         return [total_loss/n_obs, accuracy], n_obs
 
+    def _expand_to_single_batch(self, batch):
+        return tuple((item.unsqueeze(0) for item in batch))
+
     def check_predictions(self, dataset, temperature=1):
         self.model.eval()
         results = []
@@ -250,7 +253,7 @@ class CharacterTrainer(TrainerGeneric):
             for i, data in enumerate(dataset):
                 inputs, label = data[:-1], data[-1]
                 inputs = self._send_batch_components_to_device(inputs)
-                outputs = self.model(inputs.unsqueeze(0))[0]
+                outputs = self.model(self._expand_to_single_batch(inputs))[0]
                 _, predicted = torch.max(outputs, 1)
                 predicted = predicted.squeeze().item()
                 if label != predicted:
