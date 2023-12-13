@@ -11,8 +11,9 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 import torch
+from torchvision.transforms import transforms
 
-from .data_loading import StrokeDataset
+from .data_loading import StrokeDataset, StrokeDataPaths
 from .manage_models import CharacterTrainer
 from .utils import HueShifter
 
@@ -368,3 +369,34 @@ class IncorrectCharacters:
         self._anim.plot(figwidth, repeat_delay=1000)
         print(info)
         return path
+
+
+class StrokeDatasetAggregator:
+    """Iterates through the entirety of a dataset gathering all values into
+    a single tensor.
+
+    Args:
+        data_paths (StrokeDataPaths): An object to manage dataset file paths.
+        data_transforms (transforms.Compose): A torch composed
+            transform object for prepping the data. Defaults to None.
+        input_idx (Optional[int], optional): If provided, this will choose a
+            specific index to aggregate when the transform manages multiple
+            values. Defaults to None.
+    """
+    def __init__(self,
+                 data_paths: StrokeDataPaths,
+                 data_transforms: transforms.Compose,
+                 input_idx: Optional[int] = None
+                 ) -> None:
+        self._data = self._load_all(data_paths, data_transforms, input_idx)
+
+    def _load_all(self,
+                  data_paths: StrokeDataPaths,
+                  data_transforms: transforms.Compose, input_idx):
+        dataset = StrokeDataset(data_paths.get_data(),
+                                transform=data_transforms)
+        if input_idx is None:
+            tensors = [dataset[i][0] for i in range(len(dataset))]
+        else:
+            tensors = [dataset[i][0][input_idx] for i in range(len(dataset))]
+        return torch.cat(tensors, dim=0)

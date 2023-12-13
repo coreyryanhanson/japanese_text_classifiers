@@ -4,7 +4,7 @@ project"""
 import glob
 import json
 import os
-from typing import Callable, Optional
+from typing import Callable, Optional, Any
 from warnings import warn
 
 import numpy as np
@@ -202,7 +202,7 @@ class StrokeDataset(Dataset):
             return self._indices[idx]
         return idx
 
-    def __getitem__(self, idx: int) -> tuple[list[list[list[float]]], int]:
+    def __getitem__(self, idx: int) -> tuple[Any, int]:
         idx = self._translate_index(idx)
         data = self._load_json(idx)
         if self.transform:

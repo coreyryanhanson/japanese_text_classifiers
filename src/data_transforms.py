@@ -262,7 +262,22 @@ class StrokesToPil:
         return img
 
 
-class InputNormalizer:
+class _SwitchedInputTransform:
+    def __init__(self, input_idx) -> None:
+        self._input_idx = input_idx
+
+    def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
+        return sample
+
+    def __call__(self,
+                 samples: tuple[torch.Tensor, ...]
+                 ) -> tuple[torch.Tensor, ...]:
+        as_list = list(samples)
+        as_list[self._input_idx] = self._main_func(as_list[self._input_idx])
+        return tuple(as_list)
+
+
+class InputNormalizer(_SwitchedInputTransform):
     """Normalizes a dimension of a single tensor among multiple.
     Args:
         input_idx (int): The index of the input iterable indicating where the
@@ -270,15 +285,57 @@ class InputNormalizer:
         dim (int): The dimension to normalize.
     """
     def __init__(self, input_idx: int, dim: int) -> None:
-        self._input_idx = input_idx
+        super().__init__(input_idx)
         self._dim = dim
 
-    def _normalize(self, sample: torch.Tensor) -> torch.Tensor:
+    def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
         return f.normalize(sample, dim=self._dim)
 
-    def __call__(self,
-                 samples: tuple[torch.Tensor, ...]
-                 ) -> tuple[torch.Tensor, ...]:
-        as_list = list(samples)
-        as_list[self._input_idx] = self._normalize(as_list[self._input_idx])
-        return tuple(samples)
+
+class InputMinMaxTransformer(_SwitchedInputTransform):
+    """Normalizes a dimension of a single tensor among multiple.
+    Args:
+        input_idx (int): The index of the input iterable indicating where the
+            tensor is located.
+        old_min (torch.Tensor): Values of the dataset minimum to adjust data
+            elementwise.
+        old_max (torch.Tensor): Values of the dataset maximum to adjust data
+            elementwise.
+        new_min (float, optional): Scalar of what to adjust the new minimum to.
+            Defaults to 0.
+        new_max (float, optional): Scalar of what to adjust the new maximum to.
+            Defaults to 1.
+    """
+    def __init__(self,
+                 input_idx: int,
+                 old_min: torch.Tensor,
+                 old_max: torch.Tensor,
+                 new_min: float = 0,
+                 new_max: float = 1
+                 ) -> None:
+        super().__init__(input_idx)
+        self._old_min = old_min
+        self._new_min = new_min
+        old_span = old_max - old_min
+        new_span = new_max - new_min
+        self._scale = new_span / old_span
+
+    def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
+        return (sample - self._old_min) * self._scale + self._new_min
+
+
+class InputRecenter(_SwitchedInputTransform):
+    """Simple elementwise recenter by subtracting the input mean/skew.
+
+    Args:
+        input_idx (int): The index of the input iterable indicating where the
+            tensor is located.
+        skew (torch.FloatTensor): Values of the dataset mean to be subtracted
+            elementwise.
+    """
+    def __init__(self, input_idx: int, skew: torch.FloatTensor) -> None:
+        super().__init__(input_idx)
+        self._skew = skew
+
+    def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
+        return sample - self._skew

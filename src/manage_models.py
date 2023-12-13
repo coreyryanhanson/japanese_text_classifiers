@@ -15,30 +15,30 @@ class TrainerGeneric:
     """A base class for the management of PyTorch training loops.
 
     Args:
-        model (object): A class that inherets from the PyTorch module base
+        model (nn.Module): A class that inherets from the PyTorch module base
             class.
-        optimizer (object): A PyTorch optimizer
-        criterion (object): A PyTorch  loss function class.
-        dataloaders (dict[str, object]): A dictionary of data loaders with keys
-            for "train", "val", and "test".
-        scheduler (Optional[object], optional): A pytorch scheduler object.
-            Defaults to None.
+        optimizer (torch.optim.Optimizer): A PyTorch optimizer
+        criterion (nn.modules.loss._Loss): A PyTorch  loss function class.
+        dataloaders (dict[str, torch.utils.data.DataLoader]): A dictionary of
+            data loaders with keys for "train", "val", and "test".
+        scheduler (Optional[torch.optim.lr_scheduler.LRScheduler], optional):
+            A pytorch scheduler object. Defaults to None.
     """
     def __init__(self,
-                 model: object,
-                 optimizer: object,
-                 criterion: object,
-                 dataloaders: dict[str, object],
-                 scheduler: Optional[object] = None
+                 model: nn.Module,
+                 optimizer: torch.optim.Optimizer,
+                 criterion: nn.modules.loss._Loss,
+                 dataloaders: dict[str, torch.utils.data.DataLoader],
+                 scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
                  ) -> None:
         self.epoch_col = "epoch"
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
-        self.dataloaders: dict[str, object] = {}
+        self.dataloaders: dict[str, torch.utils.data.DataLoader] = {}
         self.batch_size: dict[str, int] = {}
-        self.metrics_cols = []
+        self.metrics_cols: list[str] = []
         self.learning_rate_cols = self._set_learning_rate_cols()
         self.current_results = None
         self.complete_results = None
@@ -57,7 +57,10 @@ class TrainerGeneric:
             return [var]
         return var
 
-    def _backpropogate(self, loss: object, zero_grad: bool = True) -> None:
+    def _backpropogate(self,
+                       loss: nn.modules.loss._Loss,
+                       zero_grad: bool = True
+                       ) -> None:
         if zero_grad:
             self.optimizer.zero_grad()
         loss.backward()
@@ -149,16 +152,19 @@ class TrainerGeneric:
         self._last_learning_rates = [self.optimizer.param_groups[i]["lr"]
                                      for i in range(optimizer_group_count)]
 
-    def set_dataloaders(self, dataloaders: dict[str, object]) -> None:
+    def set_dataloaders(self,
+                        dataloaders: dict[str, torch.utils.data.DataLoader]
+                        ) -> None:
         """Stores a set of dataloader objects within a dictionary and makes
         an additional dict to store batch sizes.
 
         Args:
-            dataloaders (dict[str, object]): A dictionary of data loaders with keys
-                for "train", "val", and "test".
+            dataloaders (dict[str, torch.utils.data.DataLoader]): A dictionary
+                of data loaders with keys for "train", "val", and "test".
         """
         self.dataloaders = dataloaders
-        self.batch_size = {key: value.batch_size for key, value in dataloaders.items()}
+        self.batch_size = {key: value.batch_size
+                           for key, value in dataloaders.items()}
 
     def override_lr(self,
                     learning_rate: float,
@@ -212,18 +218,27 @@ class TrainerGeneric:
 
 
 class CharacterTrainer(TrainerGeneric):
-    def __init__(self, model, optimizer, criterion, dataloaders, scheduler=None, balance_acc=False):
+    def __init__(self,
+                 model: nn.Module,
+                 optimizer: torch.optim.Optimizer,
+                 criterion: nn.modules.loss._Loss,
+                 dataloaders: dict[str, torch.utils.data.DataLoader],
+                 scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+                 balance_acc: bool = False
+                 ) -> None:
         super().__init__(model, optimizer, criterion, dataloaders, scheduler)
         self.metrics_cols = ["loss", "acc"]
         self.accuracy_func = (balanced_accuracy_score if balance_acc
                               else accuracy_score)
 
-    def _calc_accuracy(self, labels, predictions):
+    def _calc_accuracy(self,
+                       labels: list[npt.NDArray[np.float32]],
+                       predictions: list[npt.NDArray[np.float32]]
+                       ) -> float:
         return self.accuracy_func(np.concatenate(labels),
                                   np.concatenate(predictions))
 
-    def _step(self, process):
-
+    def _step(self, process: str) -> tuple[list[float], int]:
         epoch_labels, epoch_predictions = [], []
         total_loss = 0
         is_train = process == "train"
@@ -243,10 +258,15 @@ class CharacterTrainer(TrainerGeneric):
         accuracy = self._calc_accuracy(epoch_labels, epoch_predictions)
         return [total_loss/n_obs, accuracy], n_obs
 
-    def _expand_to_single_batch(self, batch):
+    def _expand_to_single_batch(self,
+                                batch: tuple[torch.Tensor, ...]
+                                ) -> tuple[torch.Tensor, ...]:
         return tuple((item.unsqueeze(0) for item in batch))
 
-    def check_predictions(self, dataset, temperature=1):
+    def check_predictions(self,
+                          dataset: torch.utils.data.Dataset,
+                          temperature: float = 1
+                          ) -> list[tuple[int, torch.Tensor]]:
         self.model.eval()
         results = []
         with self._device_context(self.model), torch.no_grad():
