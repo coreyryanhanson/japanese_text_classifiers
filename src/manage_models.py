@@ -1,7 +1,7 @@
 """A module for PyTorch model and training classes."""
 
 from contextlib import contextmanager, nullcontext
-from typing import Optional, Union
+from typing import Optional, Union, Any
 
 import numpy as np
 import numpy.typing as npt
@@ -23,19 +23,23 @@ class TrainerGeneric:
             data loaders with keys for "train", "val", and "test".
         scheduler (Optional[torch.optim.lr_scheduler.LRScheduler], optional):
             A pytorch scheduler object. Defaults to None.
+        single_input (bool): Determines if the data inputs should expect a
+            single tensor or a tuple of tensors. Defaults to True.
     """
     def __init__(self,
                  model: nn.Module,
                  optimizer: torch.optim.Optimizer,
                  criterion: nn.modules.loss._Loss,
                  dataloaders: dict[str, torch.utils.data.DataLoader],
-                 scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None
+                 scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
+                 single_input: bool = True
                  ) -> None:
         self.epoch_col = "epoch"
         self.model = model
         self.optimizer = optimizer
         self.criterion = criterion
         self.scheduler = scheduler
+        self._single_input = single_input
         self.dataloaders: dict[str, torch.utils.data.DataLoader] = {}
         self.batch_size: dict[str, int] = {}
         self.metrics_cols: list[str] = []
@@ -52,7 +56,7 @@ class TrainerGeneric:
         yield instance.to(self.device)
         instance.to("cpu")
 
-    def _force_list(self, var):
+    def _force_list(self, var: Any) -> list[Any]:
         if not isinstance(var, list):
             return [var]
         return var
@@ -123,7 +127,10 @@ class TrainerGeneric:
 
     def _send_batch_components_to_device(self,
                                          batch: tuple[torch.Tensor, ...]
-                                         ) -> tuple[torch.Tensor, ...]:
+                                         ) -> Union[torch.Tensor,
+                                                    tuple[torch.Tensor, ...]]:
+        if self._single_input:
+            return batch[0].to(self.device)
         return tuple((item.to(self.device) for item in batch))
 
     def _process_batch(self,
@@ -135,7 +142,7 @@ class TrainerGeneric:
         """
         batch = self._send_batch_components_to_device(batch)
         labels = labels.to(self.device, copy=True)
-        outputs = self.model(batch)[0]
+        outputs = self.model(batch)
         loss = self.criterion(outputs, labels)
         if is_train:
             self._backpropogate(loss, zero_grad=True)
@@ -211,6 +218,8 @@ class TrainerGeneric:
         self._update_results(metrics)
 
     def test(self):
+        """Runs the model against the test data and displays the defined
+        metrics against its predictions."""
         with self._device_context(self.model):
             key = "test"
             loss, n = self._step(key)
@@ -218,15 +227,35 @@ class TrainerGeneric:
 
 
 class CharacterTrainer(TrainerGeneric):
+    """Class to manage training and testing loops for the Japanese character
+    recognition in this project.
+
+    Args:
+        model (nn.Module): A class that inherets from the PyTorch module base
+            class.
+        optimizer (torch.optim.Optimizer): A PyTorch optimizer
+        criterion (nn.modules.loss._Loss): A PyTorch  loss function class.
+        dataloaders (dict[str, torch.utils.data.DataLoader]): A dictionary of
+            data loaders with keys for "train", "val", and "test".
+        scheduler (Optional[torch.optim.lr_scheduler.LRScheduler], optional):
+            A pytorch scheduler object. Defaults to None.
+        balance_acc (bool): Determines whether simple accuracy or class
+            balanced accuracy will be used as the model's metric. Defaults to
+            False.
+        single_input (bool): Determines if the data inputs should expect a
+            single tensor or a tuple of tensors. Defaults to True.
+    """
     def __init__(self,
                  model: nn.Module,
                  optimizer: torch.optim.Optimizer,
                  criterion: nn.modules.loss._Loss,
                  dataloaders: dict[str, torch.utils.data.DataLoader],
                  scheduler: Optional[torch.optim.lr_scheduler.LRScheduler] = None,
-                 balance_acc: bool = False
+                 balance_acc: bool = False,
+                 single_input: bool = True
                  ) -> None:
-        super().__init__(model, optimizer, criterion, dataloaders, scheduler)
+        super().__init__(model, optimizer, criterion, dataloaders, scheduler, single_input)
+        self._single_input = single_input
         self.metrics_cols = ["loss", "acc"]
         self.accuracy_func = (balanced_accuracy_score if balance_acc
                               else accuracy_score)
@@ -259,21 +288,39 @@ class CharacterTrainer(TrainerGeneric):
         return [total_loss/n_obs, accuracy], n_obs
 
     def _expand_to_single_batch(self,
-                                batch: tuple[torch.Tensor, ...]
-                                ) -> tuple[torch.Tensor, ...]:
+                                batch: Union[torch.Tensor,
+                                             tuple[torch.Tensor, ...]]
+                                ) -> Union[torch.Tensor,
+                                           tuple[torch.Tensor, ...]]:
+        if self._single_input:
+            return batch.unsqueeze(0)
         return tuple((item.unsqueeze(0) for item in batch))
 
     def check_predictions(self,
                           dataset: torch.utils.data.Dataset,
                           temperature: float = 1
                           ) -> list[tuple[int, torch.Tensor]]:
+        """Loops through the input dataset and outputs a list of all the
+        scaled values calculated through the softmax function for each item.
+
+        Args:
+            dataset (torch.utils.data.Dataset): The dataset to iterate through.
+            temperature (float, optional): Used to either enhance or dampen
+                differences between the prediction probabilities. Should be a
+                number greater than 0 where values < 1 will exaggerate and
+                values > 1 will dampen. Defaults to 1.
+
+        Returns:
+            list[tuple[int, torch.Tensor]]: A list of the character's index
+            and the scaled outputs for all classes from the softmax function.
+        """
         self.model.eval()
         results = []
         with self._device_context(self.model), torch.no_grad():
             for i, data in enumerate(dataset):
                 inputs, label = data[:-1], data[-1]
                 inputs = self._send_batch_components_to_device(inputs)
-                outputs = self.model(self._expand_to_single_batch(inputs))[0]
+                outputs = self.model(self._expand_to_single_batch(inputs))
                 _, predicted = torch.max(outputs, 1)
                 predicted = predicted.squeeze().item()
                 if label != predicted:

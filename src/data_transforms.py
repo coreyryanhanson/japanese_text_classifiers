@@ -339,3 +339,132 @@ class InputRecenter(_SwitchedInputTransform):
 
     def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
         return sample - self._skew
+
+
+class InputGaussianNoise(_SwitchedInputTransform):
+    """Adds Gaussian Noise to a specific input scaled to the indicated standard
+    deviation.
+
+    Args:
+        input_idx (int): The index of the input iterable indicating where the
+            tensor is located.
+        std (Union[float, torch.Tensor]): The standard deviation of the
+            gaussian noise to add.
+    """
+    def __init__(self,
+                 input_idx: int,
+                 std: Union[float, torch.Tensor]
+                 ) -> None:
+        super().__init__(input_idx)
+        self._std = std
+
+    def _generate_noise(self, shape: torch.Size) -> torch.Tensor:
+        return torch.randn(shape) * self._std
+
+    def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
+        return sample + self._generate_noise(sample.shape)
+
+
+class StrokeExtractAbsolute:
+    """A transform class that divides the (stroke, point, features) structure
+    of the dataset to a pair of relative and absolute features. The relative
+    features are intended to be generalizable between strokes and will keep
+    the same shape until the model reshapes them to mix with the batches. The
+    absolute features are aggregations among the points in order to be fed
+    as additional parameters directly into a stroke based GRU that will be
+    concatenated with the final outputs of the lstm's hidden layer and have
+    a simplified shape of (stroke, features).
+    """
+    def __init__(self) -> None:
+        self._angles = ExtractAngles(include_magnitudes=True,
+                                     keep_original=False)
+
+    def _extract_mean_std(self,
+                          tensor: torch.Tensor,
+                          agg_dim: int
+                          ) -> tuple[torch.Tensor, torch.Tensor]:
+        # By extracting the mean and standard deviation into single pairs of
+        # x and y values, the initial lstm can reduce some of its complexity
+        # and generalize to the basic shapes instead of retaining information
+        # about their absolute position and size.
+        means = torch.mean(tensor, dim=agg_dim)
+        stds = torch.std(tensor, dim=agg_dim)
+        return means, stds
+
+    def _extract_angle_mean(self,
+                            tensor: torch.Tensor,
+                            agg_dim: int
+                            ) -> torch.Tensor:
+        # Likewise the angles can have their overall directionallity extracted
+        # into a single pair of sine and cosine averages where the angles
+        # between pairs of points are weighted by the distance between them to
+        # best represent the information in the drawn shape.
+        angles = tensor[:, :, :2]
+        weights = tensor[:, :, 2]
+        summed = (angles * weights.unsqueeze(-1)).sum(dim=agg_dim)
+        return summed / weights.sum(dim=agg_dim).unsqueeze(-1)
+
+    def _sin_to_relative(self, sin_values: torch.Tensor) -> torch.Tensor:
+        # Angles will be normalized to values between -1 (-90°) and 1 (90°).
+        # Since they will ultimately measure the relative angle from a point
+        # to an existing pair of points, high values will be very uncommon and
+        # can safely be represented by a single value.
+        angles = torch.asin(sin_values) * (2 / np.pi)
+        # Calculates the relative difference between absolute angles
+        angles = torch.diff(angles, n=1, dim=-1)
+        # Function repeats and there should be no values outside of (-1 to 1).
+        # Edge cases from difference operation can be offset.
+        angles = torch.where(angles > 1, angles - 2, angles)
+        angles = torch.where(angles < -1, angles + 2, angles)
+        return angles
+
+    def _extract_relative_angles(self, tensor: torch.Tensor) -> torch.Tensor:
+        relative_angles = self._sin_to_relative(tensor[:, :, 1])
+        # The difference operation eliminates a value so the first value will
+        # always be assumed to be zero.
+        zeros = torch.zeros((relative_angles.shape[0], 1), dtype=torch.float32)
+        return torch.cat([zeros, relative_angles], dim=1)
+
+    def _center_mean(self,
+                     tensor: torch.Tensor,
+                     means: torch.Tensor,
+                     agg_dim: int
+                     ) -> torch.Tensor:
+        return tensor - means.unsqueeze(agg_dim)
+
+    def _convert_relative_angles(self,
+                                 tensor: torch.Tensor,
+                                 means: torch.Tensor,
+                                 agg_dim: int
+                                 ) -> torch.Tensor:
+        lengths = tensor[:, :, 2:]
+        # The relative data includes both the original angles with a simple
+        # centering on the averages which informs the direction of a single
+        # angle's deviation from its overall average, but it also captures a
+        # single value representing distances between angles to better
+        # capture smoothness and sharpness of directional changes. Finally,
+        # the distance between points is also included to help inform
+        # importance any given angle contributes to the overall shape.
+        angles = self._center_mean(tensor[:, :, :2], means, agg_dim)
+        relative_angles = self._extract_relative_angles(tensor)
+        return torch.cat([angles,
+                          relative_angles.unsqueeze(-1),
+                          lengths], dim=-1)
+
+    def _convert_angles(self,
+                        tensor: torch.Tensor,
+                        agg_dim: int
+                        ) -> tuple[torch.Tensor, torch.Tensor]:
+        angles = self._angles(tensor)
+        means = self._extract_angle_mean(angles, agg_dim)
+        relative = self._convert_relative_angles(angles, means, agg_dim)
+        return relative, means
+
+    def __call__(self,
+                 sample: torch.Tensor
+                 ) -> tuple[torch.Tensor, torch.Tensor]:
+        agg_dim = 1
+        means, stds = self._extract_mean_std(sample, agg_dim)
+        relative, angles = self._convert_angles(sample, agg_dim)
+        absolute = torch.cat([means, stds, angles], dim=-1)
+        return relative, absolute

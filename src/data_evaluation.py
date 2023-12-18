@@ -382,21 +382,81 @@ class StrokeDatasetAggregator:
         input_idx (Optional[int], optional): If provided, this will choose a
             specific index to aggregate when the transform manages multiple
             values. Defaults to None.
+        stack (bool): Whether to combine data through torches stack method
+            or with a concatenation of the individual values. Either method
+            acting on axis 0. Defaults to False.
     """
     def __init__(self,
                  data_paths: StrokeDataPaths,
                  data_transforms: transforms.Compose,
-                 input_idx: Optional[int] = None
+                 input_idx: Optional[int] = None,
+                 stack: bool = False
                  ) -> None:
-        self._data = self._load_all(data_paths, data_transforms, input_idx)
+        self._data = self._load_all(data_paths,
+                                    data_transforms,
+                                    input_idx,
+                                    stack)
 
     def _load_all(self,
                   data_paths: StrokeDataPaths,
-                  data_transforms: transforms.Compose, input_idx):
+                  data_transforms: transforms.Compose,
+                  input_idx: Optional[int],
+                  stack: bool
+                  ) -> torch.Tensor:
+        func = torch.stack if stack else torch.cat
         dataset = StrokeDataset(data_paths.get_data(),
                                 transform=data_transforms)
         if input_idx is None:
             tensors = [dataset[i][0] for i in range(len(dataset))]
         else:
             tensors = [dataset[i][0][input_idx] for i in range(len(dataset))]
-        return torch.cat(tensors, dim=0)
+        return func(tensors, dim=0)
+
+    def _create_agg_kwargs(self, keepdim: Optional[bool]) -> dict[str, bool]:
+        return {} if keepdim is None else {"keepdim": keepdim}
+
+    def get_mean_std(self,
+                     dim: Optional[int] = None,
+                     keepdim: Optional[bool] = None
+                     ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Gets the mean and standard deviation from the aggregated data.
+
+        Args:
+            dim (Optional[int], optional): The dimension to apply the
+                aggregation. Defaults to None.
+            keepdim (Optional[bool], optional): Whether to preserve the
+                original dimensions. Defaults to None.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tensor of the means and
+            standard deviations.
+        """
+        kwargs = self._create_agg_kwargs(keepdim)
+        mean = self._data.mean(dim=dim, **kwargs)
+        std = self._data.std(dim=dim, **kwargs)
+        print("Mean:", mean)
+        print("STD:", std)
+        return mean, std
+
+    def get_min_max(self,
+                    dim: Optional[int] = None,
+                    keepdim: Optional[bool] = None
+                    ) -> tuple[torch.Tensor, torch.Tensor]:
+        """Gets the miniumum and maximum values from the aggregated data.
+
+        Args:
+            dim (Optional[int], optional): The dimension to apply the
+                aggregation. Defaults to None.
+            keepdim (Optional[bool], optional): Whether to preserve the
+                original dimensions. Defaults to None.
+
+        Returns:
+            tuple[torch.Tensor, torch.Tensor]: A tensor of the minimums and
+            maximums.
+        """
+        kwargs = self._create_agg_kwargs(keepdim)
+        minimum = self._data.min(dim=dim, **kwargs)[0]
+        maximum = self._data.max(dim=dim, **kwargs)[0]
+        print("Min:", minimum)
+        print("Max:", maximum)
+        return minimum, maximum
