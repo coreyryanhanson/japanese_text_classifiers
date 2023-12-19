@@ -2,7 +2,7 @@
 
 An open sourced Japanese digital writing classification model that makes predictions based on generated observations from drawing interaction from an android app.
 
-<img src="mod4/project/img/hidden_layers/transferlearning_custom/customhl4_social.png" alt="Hidden layers"></img>
+<img src="mod4project/img/hidden_layers/transferlearning_custom/customhl4_social.png" alt="Hidden layers"></img>
 
 This project started out as an assignment with a deadline of only a few weeks that ended up being a race against time to squeeze in an MVP in the form of a CNN with an existing datastet while building my first Android app to facilitate creating a new dataset from scratch that would be used for my actual idea. If you are here to see the initial version and notebooks, those parts have been archived [here](/mod4project)
 
