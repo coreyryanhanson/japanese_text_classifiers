@@ -1,8 +1,8 @@
 [submodule "data/kmnist"]
-	path = data/kuzushiji49/kmnist
+	path = mod4project/data/kuzushiji49/kmnist
 	url = https://github.com/rois-codh/kmnist.git
 [submodule "random_lumberjacks"]
-	path = functions/random_lumberjacks
+	path = mod4project/functions/random_lumberjacks
 	url = https://github.com/coreyryanhanson/random_lumberjacks.git
 [submodule "choubenkyo_kivy_app"]
 	path = choubenkyo_kivy_app
