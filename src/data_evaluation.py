@@ -334,6 +334,8 @@ class IncorrectCharacters:
                                                               strokes,
                                                               label,
                                                               top_n))
+        if not output:
+            return pd.DataFrame([])
         df = pd.concat(output, axis=0)
         return df.sort_index(level=0, ascending=False, sort_remaining=False)
 

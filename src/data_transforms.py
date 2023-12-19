@@ -1,7 +1,7 @@
 """A module to manage the PyTorch data transforms for this project."""
 
 from colorsys import hsv_to_rgb
-from typing import Union
+from typing import Optional, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -263,15 +263,17 @@ class StrokesToPil:
 
 
 class _SwitchedInputTransform:
-    def __init__(self, input_idx) -> None:
+    def __init__(self, input_idx: Optional[int]) -> None:
         self._input_idx = input_idx
 
     def _main_func(self, sample: torch.Tensor) -> torch.Tensor:
         return sample
 
     def __call__(self,
-                 samples: tuple[torch.Tensor, ...]
-                 ) -> tuple[torch.Tensor, ...]:
+                 samples: Union[torch.Tensor, tuple[torch.Tensor, ...]]
+                 ) -> Union[torch.Tensor, tuple[torch.Tensor, ...]]:
+        if self._input_idx is None:
+            return self._main_func(samples)
         as_list = list(samples)
         as_list[self._input_idx] = self._main_func(as_list[self._input_idx])
         return tuple(as_list)
@@ -281,10 +283,11 @@ class InputNormalizer(_SwitchedInputTransform):
     """Normalizes a dimension of a single tensor among multiple.
     Args:
         input_idx (int): The index of the input iterable indicating where the
-            tensor is located.
+            tensor is located. If "None" is provided, assumes that a raw
+            tensor is passed instead of an iterable of several.
         dim (int): The dimension to normalize.
     """
-    def __init__(self, input_idx: int, dim: int) -> None:
+    def __init__(self, input_idx: Optional[int], dim: int) -> None:
         super().__init__(input_idx)
         self._dim = dim
 
@@ -296,7 +299,8 @@ class InputMinMaxTransformer(_SwitchedInputTransform):
     """Normalizes a dimension of a single tensor among multiple.
     Args:
         input_idx (int): The index of the input iterable indicating where the
-            tensor is located.
+            tensor is located. If "None" is provided, assumes that a raw
+            tensor is passed instead of an iterable of several.
         old_min (torch.Tensor): Values of the dataset minimum to adjust data
             elementwise.
         old_max (torch.Tensor): Values of the dataset maximum to adjust data
@@ -307,7 +311,7 @@ class InputMinMaxTransformer(_SwitchedInputTransform):
             Defaults to 1.
     """
     def __init__(self,
-                 input_idx: int,
+                 input_idx: Optional[int],
                  old_min: torch.Tensor,
                  old_max: torch.Tensor,
                  new_min: float = 0,
@@ -329,11 +333,15 @@ class InputRecenter(_SwitchedInputTransform):
 
     Args:
         input_idx (int): The index of the input iterable indicating where the
-            tensor is located.
+            tensor is located. If "None" is provided, assumes that a raw
+            tensor is passed instead of an iterable of several.
         skew (torch.FloatTensor): Values of the dataset mean to be subtracted
             elementwise.
     """
-    def __init__(self, input_idx: int, skew: torch.FloatTensor) -> None:
+    def __init__(self,
+                 input_idx: Optional[int],
+                 skew: torch.FloatTensor
+                 ) -> None:
         super().__init__(input_idx)
         self._skew = skew
 
@@ -347,12 +355,13 @@ class InputGaussianNoise(_SwitchedInputTransform):
 
     Args:
         input_idx (int): The index of the input iterable indicating where the
-            tensor is located.
+            tensor is located. If "None" is provided, assumes that a raw
+            tensor is passed instead of an iterable of several.
         std (Union[float, torch.Tensor]): The standard deviation of the
             gaussian noise to add.
     """
     def __init__(self,
-                 input_idx: int,
+                 input_idx: Optional[int],
                  std: Union[float, torch.Tensor]
                  ) -> None:
         super().__init__(input_idx)
@@ -390,6 +399,16 @@ class StrokeExtractAbsolute:
         means = torch.mean(tensor, dim=agg_dim)
         stds = torch.std(tensor, dim=agg_dim)
         return means, stds
+
+    def _extract_start_and_end_offsets(self,
+                                       tensor: torch.Tensor,
+                                       means: torch.Tensor
+                                       ) -> tuple[torch.Tensor, torch.Tensor]:
+        # Extracts a feature that identifies the x and y offsets for the first
+        # point and last point in a sequence with respect to the overall mean.
+        starts = tensor[:, 0, :2] - means[:, :2]
+        ends = tensor[:, -1, :2] - means[:, :2]
+        return starts, ends
 
     def _extract_angle_mean(self,
                             tensor: torch.Tensor,
@@ -465,6 +484,7 @@ class StrokeExtractAbsolute:
                  ) -> tuple[torch.Tensor, torch.Tensor]:
         agg_dim = 1
         means, stds = self._extract_mean_std(sample, agg_dim)
+        starts, ends = self._extract_start_and_end_offsets(sample, means)
         relative, angles = self._convert_angles(sample, agg_dim)
-        absolute = torch.cat([means, stds, angles], dim=-1)
+        absolute = torch.cat([means, stds, starts, ends, angles], dim=-1)
         return relative, absolute
