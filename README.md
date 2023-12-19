@@ -4,7 +4,9 @@ An open sourced Japanese digital writing classification model that makes predict
 
 <img src="mod4project/img/hidden_layers/transferlearning_custom/customhl4_social.png" alt="Hidden layers"></img>
 
-This project started out as an assignment with a deadline of only a few weeks that ended up being a race against time to squeeze in an MVP in the form of a CNN with an existing datastet while building my first Android app to facilitate creating a new dataset from scratch that would be used for my actual idea. If you are here to see the initial version and notebooks, those parts have been archived [here](/mod4project)
+This project started out as an assignment with a deadline of only a few weeks that ended up being a race against time to squeeze in an MVP in the form of a CNN with an existing datastet while building my first Android app to facilitate creating a new dataset from scratch that would be used for my actual idea. If you are here to see the initial version and notebooks, those parts have been archived [here](/mod4project).
+
+But the more interesting results can be found in the [notebooks](/notebooks) directory. The revision has improved accuracy, more intriguing models, and much cleaner code. All the basic ideas have been rewritten for use with PyTorch instead of Keras and are more sophisticated in their practices.
 
 ## The Original (probably but not necessarily abandoned) Roadmap:
 **Stage 1** - Build an OCR recognition model using existing data from the Kuzushiji-49. The observations have a degree of separation from the goal of this project, but it also provides an advantages in terms of comparison/future generalizations in that it's classification is a more difficult task since the historical kuzushiji script is less standardized.<br>**Completed-6/16/2020**
