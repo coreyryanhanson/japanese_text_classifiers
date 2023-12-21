@@ -181,33 +181,52 @@ class StrokeDataset(Dataset):
             return self.paths.size
         return self._indices.size
 
-    def _load_json(self, sample_idx: int) -> list[list[list[float]]]:
+    def _load_json(self,
+                   sample_idx: int,
+                   ) -> list[list[list[float]]]:
         path = self.paths[sample_idx]
         with open(path, "r", encoding="utf8") as f:
             output = json.load(f)
-        # If the desired amount of strokes is unspecified, it defaults to all.
-        if self._n_strokes is None:
-            n_strokes = len(output)
-        else:
-            n_strokes = self._n_strokes
-        return [output[str(i)] for i in range(1, n_strokes + 1)]
+        return [output[str(i)] for i in range(1, len(output) + 1)]
 
     def _translate_index(self, idx: int) -> int:
         if self._n_strokes is None:
             return idx
+        if self._n_strokes == -1:
+            raise IndexError("Unable to index empty dataset selection.")
         # If the datasaet has a stroke count restraint indexes are converted
         # to paths within a smaller subset.
-        if self._n_strokes > 1 or (self._n_strokes == 1 and
-                                   self._indices is not None):
-            return self._indices[idx]
-        return idx
+        return self._indices[idx]
+
+    def _stroke_inequality_matches(self,
+                                   n: int,
+                                   greater: bool
+                                   ) -> tuple[int,
+                                              Optional[npt.NDArray[np.int_]]]:
+        if greater:
+            if n >= self.available_counts.max():
+                warn("n is set higher than maximum available stroke. "
+                     "Dataset will be empty.")
+                return -1, None
+            return n, np.argwhere(self.strokes > n).squeeze()
+        if n <= self.available_counts.min():
+            warn("n is set lower than minimum available stroke. "
+                 "Dataset will be empty.")
+            return -1, None
+        return n, np.argwhere(self.strokes < n).squeeze()
+
+    def _stroke_equality_matches(self,
+                                 n: int
+                                 ) -> tuple[int,
+                                            Optional[npt.NDArray[np.int_]]]:
+        if n not in self.available_counts:
+            warn("n does not match available stroke. "
+                 "Dataset will be empty.")
+            return -1, None
+        return n, np.argwhere(self.strokes == n).squeeze()
 
     def __getitem__(self, idx: int) -> tuple[Any, int]:
-        idx = self._translate_index(idx)
-        data = self._load_json(idx)
-        if self.transform:
-            data = self.transform(data)
-        return data, self.labels[idx]
+        return self.get_transformed(idx, None)
 
     def get_path(self, idx: int) -> str:
         """Selects the filepath that leads to the data for the dataset at a
@@ -222,26 +241,53 @@ class StrokeDataset(Dataset):
         idx = self._translate_index(idx)
         return self.paths[idx]
 
-    def get_raw(self, idx: int) -> tuple[list[list[list[float]]], int]:
+    def get_raw(self,
+                idx: int,
+                max_strokes: Optional[int] = None
+                ) -> tuple[list[list[list[float]]], int]:
         """Selects data and labels from the dataset, but bypasses transforms.
 
         Args:
             idx (int): An index to chose.
+            max_strokes (Optional[int]): Trims the amount of loaded strokes to
+                this length.
 
         Returns:
             tuple[list[list[list[float]]], int]: A nested list of x and y
             coordinates for each stroke.
         """
         idx = self._translate_index(idx)
-        data = self._load_json(idx)
+        data = self._load_json(idx)[:max_strokes]
         return data, self.labels[idx]
 
-    def set_stroke_count(
+    def get_transformed(self,
+                        idx: int,
+                        max_strokes: Optional[int] = None
+                        ) -> tuple[list[list[list[float]]], int]:
+        """Selects data and labels from the dataset, and includes transforms.
+
+        Args:
+            idx (int): An index to chose.
+            max_strokes (Optional[int]): Trims the amount of loaded strokes to
+                this length.
+
+        Returns:
+            tuple[list[list[list[float]]], int]: A nested list of x and y
+            coordinates for each stroke.
+        """
+        idx = self._translate_index(idx)
+        data = self._load_json(idx)[:max_strokes]
+        if self.transform:
+            data = self.transform(data)
+        return data, self.labels[idx]
+
+    def get_indices_for_strokes(
             self,
             n: Optional[int] = None,
-            exact_match: bool = True
-            ) -> None:
-        """Restricts the pool of available data
+            nonmatch_gt: Optional[bool] = None
+            ) -> tuple[Optional[int], Optional[npt.NDArray[np.int_]]]:
+        """Finds indices of observations that meet a specific stroke
+        constraint.
 
         Args:
             n (Optional[int], optional): The desired stroke count. If n is set,
@@ -249,38 +295,74 @@ class StrokeDataset(Dataset):
                 obeservations that don't match or exceed the indicated number
                 or restricting to only those that are an exact match. Defaults
                 to None.
-            exact_match (bool, optional): This specifies the conditioning
-                behavior. If set to false and n is not None, additional
-                observations with higher stroke counts will be included but
-                truncated to the limit defined by n. Defaults to True.
+            nonmatch_gt (bool, optional): This specifies the conditioning
+                behavior. If set to None, only exact matches of the strokes
+                will be shown by the dataset. If set to True, only characters
+                with stroke counts higher than n will be shown. If set to
+                False, only characters with stroke counts lower than n will be
+                shown. Defaults to None.
 
         Raises:
             ValueError: If n is set to an illegal value <= 0.
         """
         if n is None:
-            self._n_strokes = None
-            self._indices = None
-            return
+            return None, None
         if n <= 0:
             raise ValueError("n must be set to a value of 1 or greater.")
-        if n > self.available_counts.max():
-            warn("n is set higher than maximum available stroke. "
-                 "Dataset will be empty.")
-            self._n_strokes = -1
-            self._indices = None
-            return
-        if exact_match and n not in self.available_counts:
-            warn("n does not match available stroke. "
-                 "Dataset will be empty.")
-            self._n_strokes = -1
-            self._indices = None
-            return
-        self._n_strokes = n
-        if exact_match:
-            self._indices = np.argwhere(self.strokes == n).squeeze()
-        # If not an exact match, this will cover all counts.
-        elif n == 1:
-            # Selection will be faster without indices.
-            self._indices = None
+        if nonmatch_gt is None:
+            return self._stroke_equality_matches(n)
+        return self._stroke_inequality_matches(n, nonmatch_gt)
+
+    def generate_class_weights(self,
+                               scaled: bool = False
+                               ) -> npt.NDArray[np.float32]:
+        """Generates class weights based on the labels present in the current
+        stroke selection.
+
+        Args:
+            scaled (bool): Whether or not values should add to one. Defaults
+                to False.
+
+        Returns:
+            npt.NDArray[np.float32]: An array of weights where 0s will be put
+            in place of any missing classes at the time of calculation.
+        """
+        labels = self.labels[self._indices]
+        indices, counts = np.unique(labels, return_counts=True)
+        if scaled:
+            counts = 1 / counts
+            counts = counts / counts.sum()
         else:
-            self._indices = np.argwhere(self.strokes >= n).squeeze()
+            counts = counts.sum() / counts
+        # Any label that is not present will be assigned 0.
+        weights = np.zeros(self.labels.max() + 1, dtype=np.float32)
+        weights[indices] = counts
+        return weights
+
+    def set_stroke_count(
+            self,
+            n: Optional[int] = None,
+            nonmatch_gt: Optional[bool] = None
+            ) -> None:
+        """Restricts the pool of available data based on the desired number of
+        strokes.
+
+        Args:
+            n (Optional[int], optional): The desired stroke count. If n is set,
+                it will act as a filter on the dataset by either eliminating
+                obeservations that don't match or exceed the indicated number
+                or restricting to only those that are an exact match. Defaults
+                to None.
+            nonmatch_gt (bool, optional): This specifies the conditioning
+                behavior. If set to None, only exact matches of the strokes
+                will be shown by the dataset. If set to True, only characters
+                with stroke counts higher than n will be shown. If set to
+                False, only characters with stroke counts lower than n will be
+                shown. Defaults to None.
+
+        Raises:
+            ValueError: If n is set to an illegal value <= 0.
+        """
+        strokes, indices = self.get_indices_for_strokes(n, nonmatch_gt)
+        self._n_strokes = strokes
+        self._indices = indices

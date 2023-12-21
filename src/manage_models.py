@@ -204,7 +204,7 @@ class TrainerGeneric:
         metrics = []
         train_key = "train"
         val_key = "val"
-        with self._device_context(self.model):
+        with self._device_context(self.model), self._device_context(self.criterion):
             for epoch in range(1, epochs + 1):
                 train_loss, n_train = self._step(train_key)
                 self._capture_lr()
@@ -220,7 +220,7 @@ class TrainerGeneric:
     def test(self):
         """Runs the model against the test data and displays the defined
         metrics against its predictions."""
-        with self._device_context(self.model):
+        with self._device_context(self.model), self._device_context(self.criterion):
             key = "test"
             loss, n = self._step(key)
             return self._document_metrics(self._get_last_epoch(), loss, n, key)
@@ -316,7 +316,7 @@ class CharacterTrainer(TrainerGeneric):
         """
         self.model.eval()
         results = []
-        with self._device_context(self.model), torch.no_grad():
+        with self._device_context(self.model), self._device_context(self.criterion), torch.no_grad():
             for i, data in enumerate(dataset):
                 inputs, label = data[:-1], data[-1]
                 inputs = self._send_batch_components_to_device(inputs)
