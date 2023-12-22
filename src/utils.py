@@ -64,6 +64,20 @@ def pad_constant_to_max_right(tensor: torch.Tensor,
                               dim: int,
                               value: float = 0
                               ) -> torch.Tensor:
+    """Conforms a single dimension to a specified max size by padding indicated
+    values to the end of a single axis.
+
+    Args:
+        tensor (torch.Tensor): The tensor to pad.
+        max_pad (int): The size to modify the specified dimension to with
+            padding. Should exceed the current size.
+        dim (int): The dimension to pad.
+        value (float, optional): The constant value for padding. Defaults to 0.
+
+    Returns:
+        torch.Tensor: The tensor with specified values padded at the end of the
+        specified dimension to a set size.
+    """
     pad = _get_padright_to_max_args(tensor, max_pad, dim)
     return f.pad(tensor, pad, mode="constant", value=value)
 
