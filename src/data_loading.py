@@ -4,6 +4,7 @@ project"""
 import glob
 import json
 import os
+import random
 from typing import Callable, Optional, Any
 from warnings import warn
 
@@ -11,7 +12,9 @@ import numpy as np
 import numpy.typing as npt
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from torch.utils.data import Dataset
+import torch
+
+from .utils import pad_constant_to_max_right
 
 
 class StrokeDataPaths:
@@ -149,10 +152,10 @@ class StrokeDataPaths:
         return [train, val, test]
 
 
-class StrokeDataset(Dataset):
+class StrokeDataset(torch.utils.data.Dataset):
     """Custom Dataset class that loads jsons from a directory with optional
     methods to restrict based on stroke count and include data from classes
-    with higher, but auto-truncated stroke counts.
+    with higher and lower stroke counts.
 
     Args:
         path_df (pd.DataFrame): A pandas Dataframe containing columns for
@@ -180,6 +183,9 @@ class StrokeDataset(Dataset):
         if self._indices is None:
             return self.paths.size
         return self._indices.size
+
+    def __getitem__(self, idx: int) -> tuple[Any, int]:
+        return self.get_transformed(idx, None)
 
     def _load_json(self,
                    sample_idx: int,
@@ -225,9 +231,6 @@ class StrokeDataset(Dataset):
             return -1, None
         return n, np.argwhere(self.strokes == n).squeeze()
 
-    def __getitem__(self, idx: int) -> tuple[Any, int]:
-        return self.get_transformed(idx, None)
-
     def get_path(self, idx: int) -> str:
         """Selects the filepath that leads to the data for the dataset at a
         given index.
@@ -263,7 +266,7 @@ class StrokeDataset(Dataset):
     def get_transformed(self,
                         idx: int,
                         max_strokes: Optional[int] = None
-                        ) -> tuple[list[list[list[float]]], int]:
+                        ) -> tuple[Any, int]:
         """Selects data and labels from the dataset, and includes transforms.
 
         Args:
@@ -272,7 +275,7 @@ class StrokeDataset(Dataset):
                 this length.
 
         Returns:
-            tuple[list[list[list[float]]], int]: A nested list of x and y
+            tuple[Any, int]: A nested list of x and y
             coordinates for each stroke.
         """
         idx = self._translate_index(idx)
@@ -366,3 +369,265 @@ class StrokeDataset(Dataset):
         strokes, indices = self.get_indices_for_strokes(n, nonmatch_gt)
         self._n_strokes = strokes
         self._indices = indices
+
+
+class DynamicStrokeDataSet(torch.utils.data.Dataset):
+    """Leverages the StrokeDataset object to facilitate padded and truncated
+    variations on datapoints based on a single index and reference tables.
+
+    Args:
+        path_df (pd.DataFrame): A pandas Dataframe containing columns for
+            "path", "label", and "stroke_count".
+        transform (Callable): A torch composed transform object for prepping
+            the data.
+    """
+    def __init__(self, path_df: pd.DataFrame, transform: Callable) -> None:
+        self.base = StrokeDataset(path_df, transform)
+        self._max_strokes = self.base.strokes.max()
+        self._indices_groups: list[tuple[npt.NDArray[np.int_], ...]] = None
+        self._lookup_table: npt.NDArray[np.int_] = None
+        self._augment_frequencies: npt.NDArray[np.int_] = None
+        self._initialize_tables()
+
+    def __len__(self) -> int:
+        return self._lookup_table[-1, -1]
+
+    def __getitem__(self, idx: int) -> tuple[torch.Tensor, torch.Tensor, int]:
+        row = np.argmax(self._lookup_table[:, -1] > idx)
+        return self._load_from_lookup(idx, row)
+
+    def _calc_inequality_frequencies(self,
+                                     counts: npt.NDArray[np.int_]
+                                     ) -> npt.NDArray[np.float32]:
+        output = []
+        for column in (1, 2):
+            subset = counts[:, column]
+            # When considering counts of characters with strokes above the
+            # current stroke threshold, the cumulative sum will need to be
+            # done in reverse and then flipped back.
+            if column == 1:
+                subset = np.flip(subset)
+            array = np.cumsum(subset, axis=0).astype(np.float32)
+            total = array.sum()
+            array = array / total
+            if column == 1:
+                array = np.flip(array)
+            output.append(array)
+        return np.stack(output, axis=1)
+
+    def _initialize_tables(self) -> None:
+        groups = []
+        amount_list = []
+        for i in range(1, self._max_strokes + 1):
+            group = tuple(self.base.get_indices_for_strokes(i, arg)[1] for arg in (None, True, False))
+            counts = tuple(len(item) if item is not None else 0 for item in group)
+            groups.append(group)
+            amount_list.append(counts)
+        amounts = np.array(amount_list)
+        self._indices_groups = groups
+        self._augment_frequencies = self._calc_inequality_frequencies(amounts)
+        self._lookup_table = np.cumsum(amounts.reshape(-1)).reshape(-1, 3)
+
+    def _find_true_index(self, idx: int, row: int, column: int) -> int:
+        offset = idx - self._lookup_table[row, column]
+        return self._indices_groups[row][column][offset]
+
+    def _pad_tensor(self, tensor: torch.Tensor, strokes: int) -> torch.Tensor:
+        return pad_constant_to_max_right(tensor, max_pad=strokes, dim=0)
+
+    def _load_from_lookup(self,
+                          idx: int,
+                          row: int
+                          ) -> tuple[torch.Tensor, torch.Tensor, int]:
+        if idx < self._lookup_table[row, 0]:
+            true_idx = self._find_true_index(idx, row, 0)
+            (relative, absolute), label = self.base.get_transformed(true_idx)
+        elif idx < self._lookup_table[row, 1]:
+            true_idx = self._find_true_index(idx, row, 1)
+            (relative, absolute), label = self.base.get_transformed(true_idx,
+                                                                    row + 1)
+        else:
+            true_idx = self._find_true_index(idx, row, 2)
+            (relative, absolute), label = self.base.get_transformed(true_idx)
+            strokes = row + 1
+            relative = self._pad_tensor(relative, strokes)
+            absolute = self._pad_tensor(absolute, strokes)
+        return relative, absolute, label
+
+    def get_augment_frequencies(self) -> npt.NDArray[np.float32]:
+        """Gets the object's stored table measuring the relative frequencies
+        to determine the random sampling of the augmented clipped/padded
+        values.
+
+        Returns:
+            npt.NDArray[np.float32]: Cumulative sum of occurances / sum of
+            cumulative sum of occurances. Column 0 refers to the proportion
+            of augmented values above the corresponding stroke, column 1 refers
+            to the proportion below.
+        """
+        return self._augment_frequencies
+
+    def get_lookup_table(self) -> npt.NDArray[np.int_]:
+        """Gets the table that tracks the cumulative sum of counts of data
+        and the augmentations from either trimming or padding.
+
+        Returns:
+            npt.NDArray[np.int_]: An array where stroke - 1 is the index of
+            axis 0 and axis 1 corresponds to (exact_match, greater than, less
+            than) in respect to the specified stroke count.
+        """
+        return self._lookup_table
+
+
+class _OffsettedRandomIndices:
+    def __init__(self,
+                 min_value: int,
+                 max_value: int,
+                 generator
+                 ) -> None:
+        self.generator = generator
+        self.min = min_value
+        self.span = self._set_span(min_value, max_value)
+
+    def _set_span(self, min_value: int, max_value: int) -> int:
+        span = max_value - min_value
+        if span < 0:
+            raise ValueError("max_value must exceed min_value")
+        return span
+
+    def __len__(self) -> int:
+        return self.span
+
+    def generate(self, n_samples: int) -> torch.Tensor:
+        """Method to select a random choice of a specified number of indices
+        within the defined range.
+
+        Args:
+            n_samples (int): Amount of samples to choose.
+
+        Raises:
+            ValueError: sample count cannot be above distance between max and
+                min.
+
+        Returns:
+            torch.Tensor: A tensor of randomized indeces without replacement
+            from the object's upper and lower bounds.
+        """
+        if self.span < n_samples:
+            raise ValueError("Number of samples exceed the span of indices")
+        return (torch.randperm(self.span,
+                               generator=self.generator)
+                + self.min)[:n_samples]
+
+
+class _SinglePaddedClippedStrokeSampler:
+    def __init__(self,
+                 idx_matchmin: int,
+                 idx_matchmax: int,
+                 idx_undermax: int,
+                 idx_overmax: int,
+                 under_samples: int,
+                 over_samples: int,
+                 generator):
+        self.generator = generator
+        # Samples weighted random samples below stroke count
+        self.under_sampler = _OffsettedRandomIndices(idx_matchmax,
+                                                     idx_undermax,
+                                                     self.generator)
+        # Samples weighted random samples above stroke count
+        self.over_sampler = _OffsettedRandomIndices(idx_undermax,
+                                                    idx_overmax,
+                                                    self.generator)
+        self.n_under = under_samples
+        self.n_over = over_samples
+        self.idx_matchmin = idx_matchmin
+        self.idx_matchmax = idx_matchmax
+
+    def _choose_indices(self) -> torch.Tensor:
+        exact = torch.LongTensor(range(self.idx_matchmin, self.idx_matchmax))
+        under = self.under_sampler.generate(self.n_under)
+        over = self.over_sampler.generate(self.n_over)
+        output = torch.cat([exact, under, over])
+        return output[torch.randperm(len(self), generator=self.generator)]
+
+    def __len__(self):
+        return int(self.n_under + self.n_over
+                   + self.idx_matchmax - self.idx_matchmin)
+
+    def __iter__(self):
+        yield from self._choose_indices()
+
+
+class BatchedVariableStrokeSampler:
+    def __init__(self,
+                 lookup_table,
+                 augment_frequencies,
+                 batch_size: int,
+                 augment_proportion: float = .5
+                 ) -> None:
+        self.batch_size = batch_size
+        self.generator = self._create_generator()
+        self._batched_samplers = self._create_samplers(lookup_table,
+                                                       augment_frequencies,
+                                                       augment_proportion)
+
+    def _get_sample_count(self, lookup_table):
+        prior = np.concatenate([np.zeros(1), lookup_table[:-1, -1]], axis=0)
+        return (lookup_table[:, 0] - prior).sum()
+
+    def _init_frequency_table(self,
+                              lookup_table,
+                              augment_frequencies,
+                              augment_proportion
+                              ):
+        n_samples = self._get_sample_count(lookup_table)
+        return np.round(augment_frequencies * augment_proportion
+                        * n_samples).astype(np.int64)
+
+    def _create_samplers(self,
+                         lookup_table,
+                         augment_frequencies,
+                         augment_proportion
+                         ):
+        frequencies = self._init_frequency_table(lookup_table,
+                                                 augment_frequencies,
+                                                 augment_proportion)
+        samplers = []
+        for i in range(lookup_table.shape[0]):
+            if i == 0:
+                idx_matchmin = 0
+            else:
+                idx_matchmin = lookup_table[i-1, 2]
+            idx_matchmax, idx_undermax, idx_overmax = lookup_table[i]
+            under_samples, over_samples = frequencies[i]
+            sampler = _SinglePaddedClippedStrokeSampler(idx_matchmin,
+                                                        idx_matchmax,
+                                                        idx_undermax,
+                                                        idx_overmax,
+                                                        under_samples,
+                                                        over_samples,
+                                                        self.generator)
+            samplers.append(torch.utils.data.BatchSampler(sampler,
+                                                          self.batch_size,
+                                                          drop_last=False))
+        return samplers
+
+    def _create_generator(self):
+        seed  = int(torch.empty((), dtype=torch.int64).random_().item())
+        generator = torch.Generator()
+        generator.manual_seed(seed)
+        return generator
+
+    def _mix_batches(self):
+        batches = []
+        for sampler in self._batched_samplers:
+            for sample in sampler:
+                batches.append(sample)
+        random.shuffle(batches)
+        return batches
+
+    def __len__(self):
+        return sum([len(sampler) for sampler in self._batched_samplers])
+
+    def __iter__(self):
+        yield from self._mix_batches()

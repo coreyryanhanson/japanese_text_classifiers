@@ -2,6 +2,9 @@
 
 from colorsys import hsv_to_rgb
 
+import torch
+import torch.nn.functional as f
+
 
 class HueShifter:
     """Custom class to manage automatic hue shifted colors.
@@ -54,3 +57,23 @@ class HueShifter:
         """
         return tuple(round(channel * 255)
                      for channel in hsv_to_rgb(*self.get_hsv()))
+
+
+def pad_constant_to_max_right(tensor: torch.Tensor,
+                              max_pad: int,
+                              dim: int,
+                              value: float = 0
+                              ) -> torch.Tensor:
+    pad = _get_padright_to_max_args(tensor, max_pad, dim)
+    return f.pad(tensor, pad, mode="constant", value=value)
+
+
+def _get_padright_to_max_args(tensor: torch.Tensor,
+                              max_pad: int,
+                              dim: int
+                              ) -> list[int]:
+    pad_size = max_pad - tensor.shape[dim]
+    pad = [0] * 2 * len(tensor.shape)
+    pad_dim = -dim * 2 - 1
+    pad[pad_dim] = pad_size
+    return pad

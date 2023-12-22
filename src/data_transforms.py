@@ -10,7 +10,7 @@ from scipy.interpolate import make_interp_spline
 import torch
 import torch.nn.functional as f
 
-from .utils import HueShifter
+from .utils import HueShifter, pad_constant_to_max_right
 
 
 class ToBSplines:
@@ -141,13 +141,6 @@ class EmptyStrokePadder:
         self.pad_dim = pad_dim
         self.pad_value = pad_value
 
-    def _specify_pad(self, sample: torch.Tensor) -> list[int]:
-        pad_size = self.stroke_count - sample.shape[self.pad_dim]
-        pad = [0] * 2 * len(sample.shape)
-        pad_dim = -self.pad_dim * 2 - 1
-        pad[pad_dim] = pad_size
-        return pad
-
     def __call__(self, sample: torch.Tensor) -> torch.Tensor:
         n_strokes = sample.shape[self.pad_dim]
         if n_strokes == self.stroke_count:
@@ -155,8 +148,10 @@ class EmptyStrokePadder:
         if n_strokes > self.stroke_count:
             raise RuntimeError("stroke_count cannot be less than the"
                                "actual number of strokes")
-        pad = self._specify_pad(sample)
-        return f.pad(sample, pad, mode="constant", value=self.pad_value)
+        return pad_constant_to_max_right(sample,
+                                         self.stroke_count,
+                                         self.pad_dim,
+                                         self.pad_value)
 
 
 class StrokesToPil:
